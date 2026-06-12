@@ -3,640 +3,204 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rail Diary</title>
+  <title>RailDiary</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg:        #06090f;
-      --surface:   #0d1520;
-      --surface2:  #121e2e;
-      --border:    #1a2d45;
-      --border2:   #243d5a;
-      --accent:    #f97316;
-      --accent-d:  #c2520a;
-      --blue:      #3b82f6;
-      --text:      #e2e8f0;
-      --muted:     #64748b;
-      --muted2:    #94a3b8;
-      --green:     #22c55e;
-      --yellow:    #eab308;
-      --purple:    #a855f7;
-      --teal:      #14b8a6;
-      --red:       #ef4444;
+      --bg:#06090f; --surface:#0d1520; --surface2:#121e2e;
+      --border:#1a2d45; --border2:#243d5a;
+      --accent:#f97316; --accent-d:#c2520a;
+      --blue:#3b82f6; --text:#e2e8f0; --muted:#64748b; --muted2:#94a3b8;
+      --green:#22c55e; --yellow:#eab308; --purple:#a855f7; --teal:#14b8a6; --red:#ef4444;
     }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Space Grotesk', sans-serif;
-      min-height: 100vh;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    /* ── SETUP SCREEN ── */
-    #setup-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 24px;
-    }
-
-    .setup-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 36px 32px;
-      width: 100%;
-      max-width: 440px;
-    }
-
-    .setup-card .logo {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      margin-bottom: 4px;
-    }
-
-    .setup-card .logo span { color: var(--accent); }
-
-    .setup-card p {
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 28px;
-    }
-
-    .field-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .field-input {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s;
-      margin-bottom: 16px;
-    }
-
-    .field-input:focus { border-color: var(--accent); }
-
-    .hint {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 14px;
-      font-size: 12px;
-      color: var(--muted2);
-      margin-bottom: 20px;
-      line-height: 1.6;
-    }
-
-    .hint a { color: var(--accent); text-decoration: none; }
-
-    .btn-primary {
-      width: 100%;
-      background: var(--accent);
-      border: none;
-      border-radius: 8px;
-      padding: 12px;
-      color: #fff;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .btn-primary:hover { background: var(--accent-d); }
-
-    /* ── APP SHELL ── */
-    #app { display: none; }
-
-    header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 56px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .header-logo {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .header-logo span { color: var(--accent); }
-
-    nav {
-      display: flex;
-      gap: 4px;
-    }
-
-    .nav-btn {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .nav-btn:hover { color: var(--text); background: var(--surface2); }
-    .nav-btn.active { color: var(--text); background: var(--surface2); }
-
-    .header-actions { display: flex; align-items: center; gap: 8px; }
-
-    .sync-status {
-      font-size: 11px;
-      color: var(--muted);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .sync-status.syncing { color: var(--yellow); }
-    .sync-status.synced { color: var(--green); }
-    .sync-status.error { color: var(--red); }
-
-    .btn-add {
-      background: var(--accent);
-      border: none;
-      border-radius: 7px;
-      padding: 6px 14px;
-      color: #fff;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .btn-add:hover { background: var(--accent-d); }
-
-    main {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 24px 16px;
-    }
-
-    /* ── VIEWS ── */
-    .view { display: none; }
-    .view.active { display: block; }
-
-    /* ── STATS ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 14px;
-      text-align: center;
-    }
-
-    .stat-card .stat-val {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--accent);
-      font-variant-numeric: tabular-nums;
-      letter-spacing: -0.02em;
-    }
-
-    .stat-card .stat-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .section-title {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 14px;
-    }
-
-    .class-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .class-tag {
-      width: 32px;
-      font-size: 11px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .bar-track {
-      flex: 1;
-      background: var(--surface2);
-      border-radius: 4px;
-      height: 7px;
-      overflow: hidden;
-    }
-
-    .bar-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.4s ease;
-    }
-
-    .class-count {
-      font-size: 12px;
-      color: var(--muted2);
-      width: 20px;
-      text-align: right;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* ── JOURNEY LIST ── */
-    .search-bar {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 14px;
-      color: var(--text);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 14px;
-      outline: none;
-      margin-bottom: 14px;
-      transition: border-color 0.15s;
-    }
-
-    .search-bar:focus { border-color: var(--accent); }
-
-    .journey-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-      position: relative;
-    }
-
-    .journey-card:hover { border-color: var(--border2); background: var(--surface2); }
-
-    .journey-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-
-    .journey-name {
-      font-size: 14px;
-      font-weight: 600;
-      flex: 1;
-      margin-right: 10px;
-    }
-
-    .journey-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    .mono-sm {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border2); }
-
-    .route-display {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .station-code {
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      padding: 3px 8px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-    }
-
-    .arrow { color: var(--accent); font-size: 14px; }
-
-    .badge {
-      border-radius: 5px;
-      padding: 2px 8px;
-      font-size: 11px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .journey-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 8px;
-    }
-
-    .journey-notes {
-      font-size: 12px;
-      color: var(--muted);
-      font-style: italic;
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-right: 10px;
-    }
-
-    .journey-km {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .empty-state {
-      text-align: center;
-      color: var(--muted);
-      padding: 60px 0;
-      font-size: 14px;
-    }
-
-    /* ── ROUTE STOPS ── */
-    .stops-list {
-      margin-top: 10px;
-      display: none;
-    }
-
-    .stops-list.open { display: block; }
-
-    .stop-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 6px 0;
-      position: relative;
-    }
-
-    .stop-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--border2);
-      margin-top: 5px;
-      flex-shrink: 0;
-      position: relative;
-      z-index: 1;
-    }
-
-    .stop-dot.terminal { background: var(--accent); }
-
-    .stop-line-track {
-      position: absolute;
-      left: 3px;
-      top: 14px;
-      width: 2px;
-      height: calc(100% - 8px);
-      background: var(--border);
-    }
-
-    .stop-name { font-size: 13px; color: var(--muted2); flex: 1; }
-    .stop-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
-    .stop-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); text-align: right; }
-
-    .stops-toggle {
-      background: none;
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      padding: 4px 10px;
-      color: var(--muted2);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 12px;
-      cursor: pointer;
-      margin-top: 8px;
-      transition: all 0.15s;
-    }
-
-    .stops-toggle:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ── ADD FORM ── */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .form-field { display: flex; flex-direction: column; }
-    .form-field.full { grid-column: 1 / -1; }
-
-    .form-field label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .form-field input,
-    .form-field select,
-    .form-field textarea {
-      background: var(--bg);
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--text);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    .form-field input:focus,
-    .form-field select:focus,
-    .form-field textarea:focus { border-color: var(--accent); }
-
-    .form-field select { cursor: pointer; }
-    .form-field textarea { resize: vertical; min-height: 72px; }
-
-    .fetch-route-btn {
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      padding: 9px 14px;
-      color: var(--muted2);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-      align-self: flex-end;
-    }
-
-    .fetch-route-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-    .route-preview {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--muted2);
-      display: none;
-    }
-
-    .route-preview.visible { display: block; }
-
-    .form-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .btn-secondary {
-      flex: 1;
-      background: none;
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      padding: 11px;
-      color: var(--muted2);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .btn-secondary:hover { border-color: var(--text); color: var(--text); }
-
-    .btn-save {
-      flex: 2;
-      background: var(--accent);
-      border: none;
-      border-radius: 8px;
-      padding: 11px;
-      color: #fff;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .btn-save:hover { background: var(--accent-d); }
-
-    /* ── TOAST ── */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-size: 13px;
-      color: var(--text);
-      transition: transform 0.25s ease;
-      z-index: 999;
-      white-space: nowrap;
-    }
-
-    #toast.show { transform: translateX(-50%) translateY(0); }
-    #toast.success { border-color: var(--green); color: var(--green); }
-    #toast.error { border-color: var(--red); color: var(--red); }
-
-    /* ── MOBILE ── */
-    @media (max-width: 500px) {
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-      .form-grid { grid-template-columns: 1fr; }
-      .form-field.full { grid-column: 1; }
-      nav .nav-btn { padding: 6px 8px; font-size: 12px; }
-      header { padding: 0 12px; }
-      .header-logo { font-size: 16px; }
+    body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh; font-size:14px; line-height:1.5; }
+
+    /* SETUP */
+    #setup-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
+    .setup-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:36px 32px; width:100%; max-width:440px; }
+    .setup-card .logo { font-size:28px; font-weight:700; letter-spacing:-0.03em; margin-bottom:4px; }
+    .setup-card .logo span { color:var(--accent); }
+    .setup-card p { color:var(--muted); font-size:13px; margin-bottom:28px; }
+    .field-input { width:100%; background:var(--bg); border:1px solid var(--border2); border-radius:8px; padding:10px 14px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:13px; outline:none; transition:border-color 0.15s; margin-bottom:16px; }
+    .field-input:focus { border-color:var(--accent); }
+    .hint { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; font-size:12px; color:var(--muted2); margin-bottom:20px; line-height:1.6; }
+    .hint a { color:var(--accent); text-decoration:none; }
+    .btn-primary { width:100%; background:var(--accent); border:none; border-radius:8px; padding:12px; color:#fff; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600; cursor:pointer; }
+    .btn-primary:hover { background:var(--accent-d); }
+
+    /* APP */
+    #app { display:none; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 20px; display:flex; align-items:center; justify-content:space-between; height:56px; position:sticky; top:0; z-index:200; }
+    .header-logo { font-size:18px; font-weight:700; letter-spacing:-0.02em; }
+    .header-logo span { color:var(--accent); }
+    nav { display:flex; gap:4px; }
+    .nav-btn { background:none; border:none; color:var(--muted); font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:500; padding:6px 12px; border-radius:6px; cursor:pointer; transition:all 0.15s; }
+    .nav-btn:hover { color:var(--text); background:var(--surface2); }
+    .nav-btn.active { color:var(--text); background:var(--surface2); }
+    .header-right { display:flex; align-items:center; gap:8px; }
+    .sync-status { font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+    .sync-status.syncing { color:var(--yellow); }
+    .sync-status.synced { color:var(--green); }
+    .sync-status.error { color:var(--red); }
+    .btn-add { background:var(--accent); border:none; border-radius:7px; padding:6px 14px; color:#fff; font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-add:hover { background:var(--accent-d); }
+    main { max-width:760px; margin:0 auto; padding:24px 16px; }
+    .view { display:none; }
+    .view.active { display:block; }
+
+    /* STATS */
+    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 14px; text-align:center; }
+    .stat-val { font-size:22px; font-weight:700; color:var(--accent); letter-spacing:-0.02em; }
+    .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-top:4px; }
+    .section-title { font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); margin-bottom:12px; }
+    .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+    .class-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .class-tag { width:32px; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+    .bar-track { flex:1; background:var(--surface2); border-radius:4px; height:7px; overflow:hidden; }
+    .bar-fill { height:100%; border-radius:4px; }
+    .class-count { font-size:12px; color:var(--muted2); width:20px; text-align:right; font-family:'JetBrains Mono',monospace; }
+
+    /* PASSPORT / MAP */
+    #passport-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
+    .ps-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+    .ps-card .ps-val { font-size:20px; font-weight:700; color:var(--accent); letter-spacing:-0.02em; }
+    .ps-card .ps-sub { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-top:2px; }
+    .ps-card .ps-detail { font-size:12px; color:var(--muted2); margin-top:4px; }
+
+    #map-container { border-radius:12px; overflow:hidden; border:1px solid var(--border); margin-bottom:14px; position:relative; }
+    #rail-map { height:420px; background:#0a1424; }
+
+    .map-legend { display:flex; gap:16px; flex-wrap:wrap; padding:10px 14px; background:var(--surface); border-top:1px solid var(--border); }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted2); }
+    .legend-dot { width:10px; height:10px; border-radius:50%; }
+    .legend-line { width:20px; height:2px; border-radius:2px; }
+
+    .top-stations-list { display:flex; flex-direction:column; gap:0; }
+    .top-station-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+    .rank-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); width:20px; }
+    .stn-info { flex:1; }
+    .stn-name { font-size:13px; font-weight:500; }
+    .stn-code { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+    .stn-count { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--accent); font-weight:600; }
+
+    .fun-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .fun-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+    .fun-card .fun-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+    .fun-card .fun-val { font-size:16px; font-weight:700; }
+    .fun-card .fun-sub { font-size:11px; color:var(--muted2); margin-top:2px; }
+
+    /* JOURNEY LIST */
+    .search-bar { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none; margin-bottom:14px; transition:border-color 0.15s; }
+    .search-bar:focus { border-color:var(--accent); }
+    .journey-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:8px; transition:border-color 0.15s,background 0.15s; }
+    .journey-card:hover { border-color:var(--border2); background:var(--surface2); }
+    .journey-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+    .journey-name { font-size:14px; font-weight:600; flex:1; margin-right:10px; }
+    .journey-meta { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .mono-sm { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); }
+    .dot { width:3px; height:3px; border-radius:50%; background:var(--border2); }
+    .route-display { display:flex; align-items:center; gap:8px; }
+    .station-code { background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:3px 8px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; letter-spacing:0.05em; }
+    .arrow { color:var(--accent); font-size:14px; }
+    .badge { border-radius:5px; padding:2px 8px; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+    .journey-notes { font-size:12px; color:var(--muted); font-style:italic; margin-top:6px; }
+    .journey-km { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); }
+    .stops-toggle { background:none; border:1px solid var(--border2); border-radius:6px; padding:4px 10px; color:var(--muted2); font-family:'Space Grotesk',sans-serif; font-size:12px; cursor:pointer; margin-top:8px; transition:all 0.15s; }
+    .stops-toggle:hover { border-color:var(--accent); color:var(--accent); }
+    .stops-list { margin-top:8px; display:none; }
+    .stops-list.open { display:block; }
+    .stop-item { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--border); }
+    .stop-dot { width:7px; height:7px; border-radius:50%; background:var(--border2); flex-shrink:0; }
+    .stop-dot.terminal { background:var(--accent); }
+    .stop-name { font-size:12px; color:var(--muted2); flex:1; }
+    .stop-code { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+    .stop-time { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+    .empty-state { text-align:center; color:var(--muted); padding:60px 0; font-size:14px; }
+
+    /* ADD FORM */
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .form-field { display:flex; flex-direction:column; }
+    .form-field.full { grid-column:1/-1; }
+    .form-field label { font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); margin-bottom:6px; }
+    .form-field input, .form-field select, .form-field textarea { background:var(--bg); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none; transition:border-color 0.15s; }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color:var(--accent); }
+    .form-field select { cursor:pointer; }
+    .form-field textarea { resize:vertical; min-height:72px; }
+    .fetch-row { display:flex; gap:10px; align-items:flex-end; }
+    .fetch-btn { background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:9px 14px; color:var(--muted2); font-family:'Space Grotesk',sans-serif; font-size:13px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+    .fetch-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .route-preview { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-top:8px; font-size:12px; color:var(--muted2); display:none; }
+    .route-preview.visible { display:block; }
+    .form-actions { display:flex; gap:10px; margin-top:20px; }
+    .btn-secondary { flex:1; background:none; border:1px solid var(--border2); border-radius:8px; padding:11px; color:var(--muted2); font-family:'Space Grotesk',sans-serif; font-size:14px; cursor:pointer; }
+    .btn-secondary:hover { border-color:var(--text); color:var(--text); }
+    .btn-save { flex:2; background:var(--accent); border:none; border-radius:8px; padding:11px; color:#fff; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600; cursor:pointer; }
+    .btn-save:hover { background:var(--accent-d); }
+
+    /* TOAST */
+    #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:10px 18px; font-size:13px; color:var(--text); transition:transform 0.25s ease; z-index:999; white-space:nowrap; }
+    #toast.show { transform:translateX(-50%) translateY(0); }
+    #toast.success { border-color:var(--green); color:var(--green); }
+    #toast.error { border-color:var(--red); color:var(--red); }
+
+    /* Leaflet dark overrides */
+    .leaflet-container { background:#0a1424 !important; }
+    .leaflet-tile { filter:brightness(0.6) saturate(0.3) hue-rotate(180deg); }
+    .leaflet-popup-content-wrapper { background:var(--surface); color:var(--text); border:1px solid var(--border2); border-radius:8px; box-shadow:none; }
+    .leaflet-popup-tip { background:var(--surface); }
+    .leaflet-popup-content { font-family:'Space Grotesk',sans-serif; font-size:13px; line-height:1.5; margin:10px 14px; }
+    .leaflet-control-attribution { display:none; }
+    .leaflet-control-zoom a { background:var(--surface2) !important; color:var(--text) !important; border-color:var(--border2) !important; }
+
+    @media(max-width:500px) {
+      .stats-grid { grid-template-columns:1fr 1fr; }
+      #passport-stats { grid-template-columns:1fr 1fr; }
+      .form-grid { grid-template-columns:1fr; }
+      .form-field.full { grid-column:1; }
+      .fun-stats-grid { grid-template-columns:1fr; }
+      nav .nav-btn { padding:6px 8px; font-size:12px; }
+      header { padding:0 12px; }
     }
   </style>
 </head>
 <body>
 
-<!-- ── SETUP SCREEN ── -->
+<!-- SETUP -->
 <div id="setup-screen">
   <div class="setup-card">
     <div class="logo">Rail<span>Diary</span></div>
-    <p>Your personal Indian Railways journey log. Stores data in your GitHub account — accessible everywhere.</p>
-
-    <div class="field-label">GitHub Personal Access Token</div>
+    <p>Your personal Indian Railways journey log. Stores data in your GitHub — accessible everywhere.</p>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:6px">GitHub Personal Access Token</div>
     <input class="field-input" type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
-
     <div class="hint">
-      Generate at <a href="https://github.com/settings/tokens/new" target="_blank">github.com → Settings → Developer Settings → Personal Access Tokens (classic)</a>. Tick the <strong>repo</strong> scope. Paste it above.
+      Generate at <a href="https://github.com/settings/tokens/new" target="_blank">github.com → Settings → Developer Settings → Personal Access Tokens (classic)</a>. Tick the <strong>repo</strong> scope.
     </div>
-
     <button class="btn-primary" onclick="initApp()">Connect & Start →</button>
   </div>
 </div>
 
-<!-- ── MAIN APP ── -->
+<!-- APP -->
 <div id="app">
   <header>
     <div class="header-logo">Rail<span>Diary</span></div>
     <nav>
-      <button class="nav-btn active" onclick="showView('stats', this)">Stats</button>
-      <button class="nav-btn" onclick="showView('log', this)">Journeys</button>
+      <button class="nav-btn active" onclick="showView('stats',this)">Stats</button>
+      <button class="nav-btn" onclick="showView('passport',this)">Map</button>
+      <button class="nav-btn" onclick="showView('log',this)">Journeys</button>
     </nav>
-    <div class="header-actions">
-      <span class="sync-status" id="sync-status">●&nbsp;ready</span>
-      <button class="btn-add" onclick="showView('add', null)">+ Add</button>
+    <div class="header-right">
+      <span class="sync-status" id="sync-status">● ready</span>
+      <button class="btn-add" onclick="showView('add',null)">+ Add</button>
     </div>
   </header>
 
   <main>
-    <!-- STATS VIEW -->
+    <!-- STATS -->
     <div class="view active" id="view-stats">
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-val" id="s-rides">0</div><div class="stat-label">Rides</div></div>
@@ -653,47 +217,71 @@
       </div>
     </div>
 
-    <!-- JOURNEY LOG VIEW -->
+    <!-- PASSPORT / MAP -->
+    <div class="view" id="view-passport">
+      <div id="passport-stats">
+        <div class="ps-card"><div class="ps-val" id="ps-km">0</div><div class="ps-sub">Kilometres railed</div><div class="ps-detail" id="ps-km-detail"></div></div>
+        <div class="ps-card"><div class="ps-val" id="ps-stations">0</div><div class="ps-sub">Unique stations</div><div class="ps-detail" id="ps-stn-detail"></div></div>
+        <div class="ps-card"><div class="ps-val" id="ps-routes">0</div><div class="ps-sub">Unique routes</div><div class="ps-detail" id="ps-route-detail"></div></div>
+        <div class="ps-card"><div class="ps-val" id="ps-longest">—</div><div class="ps-sub">Longest single ride</div><div class="ps-detail" id="ps-longest-detail"></div></div>
+      </div>
+
+      <div id="map-container">
+        <div id="rail-map"></div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-line" style="background:#f97316;opacity:0.8"></div> Journey route</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Terminal station</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Intermediate stop</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Most visited</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">Most Visited Stations</div>
+        <div class="top-stations-list" id="top-stations"></div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">Fun Facts</div>
+        <div class="fun-stats-grid" id="fun-stats"></div>
+      </div>
+    </div>
+
+    <!-- JOURNEY LOG -->
     <div class="view" id="view-log">
       <input class="search-bar" type="text" id="search-input" placeholder="Search by train name, number, or station…" oninput="renderJourneys()" />
       <div id="journey-list"></div>
     </div>
 
-    <!-- ADD VIEW -->
+    <!-- ADD -->
     <div class="view" id="view-add">
       <div class="panel">
         <div class="section-title" style="margin-bottom:18px">Log a Journey</div>
         <div class="form-grid">
-
-          <div class="form-field full" style="flex-direction:row; gap:10px; align-items:flex-end;">
-            <div style="flex:1; display:flex; flex-direction:column;">
-              <label>Train Number *</label>
-              <input type="text" id="f-trainno" placeholder="12621" oninput="onTrainNoInput()" />
+          <div class="form-field full">
+            <label>Train Number *</label>
+            <div class="fetch-row">
+              <input type="text" id="f-trainno" placeholder="12621" style="flex:1" oninput="onTrainNoInput()" />
+              <button class="fetch-btn" onclick="fetchRoute()">Fetch Route ↗</button>
             </div>
-            <button class="fetch-route-btn" onclick="fetchRoute()">Fetch Route ↗</button>
           </div>
-
           <div class="form-field full">
             <label>Train Name *</label>
             <input type="text" id="f-trainname" placeholder="Tamil Nadu Express" />
             <div class="route-preview" id="route-preview"></div>
           </div>
-
           <div class="form-field">
             <label>From (Station Code) *</label>
             <input type="text" id="f-from" placeholder="MAS" oninput="this.value=this.value.toUpperCase()" />
           </div>
-
           <div class="form-field">
             <label>To (Station Code) *</label>
             <input type="text" id="f-to" placeholder="NDLS" oninput="this.value=this.value.toUpperCase()" />
           </div>
-
           <div class="form-field">
             <label>Date of Travel *</label>
             <input type="date" id="f-date" />
           </div>
-
           <div class="form-field">
             <label>Class</label>
             <select id="f-class">
@@ -706,25 +294,21 @@
               <option value="GN">GN — General</option>
             </select>
           </div>
-
           <div class="form-field">
             <label>Distance (km)</label>
             <input type="number" id="f-km" placeholder="1279" />
           </div>
-
           <div class="form-field">
             <label>PNR (optional)</label>
             <input type="text" id="f-pnr" placeholder="1234567890" />
           </div>
-
           <div class="form-field full">
             <label>Notes</label>
             <textarea id="f-notes" placeholder="Upper berth, arrived on time, had biryani at Vijayawada…"></textarea>
           </div>
         </div>
-
         <div class="form-actions">
-          <button class="btn-secondary" onclick="showView('log', null)">Cancel</button>
+          <button class="btn-secondary" onclick="showView('log',null)">Cancel</button>
           <button class="btn-save" onclick="saveJourney()">Save Journey</button>
         </div>
       </div>
@@ -736,38 +320,54 @@
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────────
-const GITHUB_USER  = 'Arytra';
-const REPO_NAME    = 'rail-diary-data';
-const DATA_FILE    = 'journeys.json';
-const STORAGE_KEY  = 'raildiary_token';
+const GITHUB_USER = 'Arytra';
+const REPO_NAME   = 'rail-diary-data';
+const DATA_FILE   = 'journeys.json';
+const STORAGE_KEY = 'raildiary_token';
 
-// Class colors
-const CLASS_COLOR = {
-  SL: '#eab308', '3A': '#3b82f6', '2A': '#a855f7',
-  '1A': '#22c55e', CC: '#14b8a6', EC: '#f97316', GN: '#ef4444'
-};
+const CLASS_COLOR = { SL:'#eab308','3A':'#3b82f6','2A':'#a855f7','1A':'#22c55e',CC:'#14b8a6',EC:'#f97316',GN:'#ef4444' };
+
+// ── STATION COORDS (inline, subset of datameet/railways) ────────────────────
+// Full dataset loaded from CDN-hosted JSON (fetched once, cached)
+let STATIONS = {};
+
+async function loadStationData() {
+  // Load from datameet/railways on GitHub
+  try {
+    const res = await fetch('./stations.json');
+    const data = await res.json();
+    for (const [code, s] of Object.entries(data)) {
+      STATIONS[code] = s;
+    }
+  } catch(e) {
+    console.warn('Station data load failed', e);
+  }
+}
 
 // ── STATE ───────────────────────────────────────────────────────────────────
 let TOKEN    = '';
 let journeys = [];
 let fileSHA  = null;
 let fetchedRoute = null;
+let map = null;
+let mapInitialized = false;
 
 // ── INIT ────────────────────────────────────────────────────────────────────
-window.onload = () => {
+window.onload = async () => {
+  await loadStationData();
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) { TOKEN = saved; bootApp(); }
 };
 
 async function initApp() {
   const t = document.getElementById('gh-token').value.trim();
-  if (!t) { toast('Paste your GitHub token first', 'error'); return; }
+  if (!t) { toast('Paste your GitHub token first','error'); return; }
   TOKEN = t;
-  await bootApp();
+  bootApp();
 }
 
 async function bootApp() {
-  setSyncStatus('syncing', '● syncing…');
+  setSyncStatus('syncing','● syncing…');
   try {
     await ensureRepo();
     await loadJourneys();
@@ -775,130 +375,78 @@ async function bootApp() {
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     renderAll();
-    setSyncStatus('synced', '● synced');
-  } catch (e) {
-    setSyncStatus('error', '● error');
-    toast('Could not connect. Check your token.', 'error');
+    setSyncStatus('synced','● synced');
+  } catch(e) {
+    setSyncStatus('error','● error');
+    toast('Could not connect. Check your token.','error');
     console.error(e);
   }
 }
 
-// ── GITHUB API ───────────────────────────────────────────────────────────────
+// ── GITHUB ───────────────────────────────────────────────────────────────────
 function ghHeaders() {
-  return {
-    'Authorization': `token ${TOKEN}`,
-    'Accept': 'application/vnd.github+json',
-    'Content-Type': 'application/json',
-    'X-GitHub-Api-Version': '2022-11-28'
-  };
+  return { 'Authorization':`token ${TOKEN}`, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json', 'X-GitHub-Api-Version':'2022-11-28' };
 }
 
 async function ensureRepo() {
-  // Check if repo exists
-  const check = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}`, { headers: ghHeaders() });
+  const check = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}`, { headers:ghHeaders() });
   if (check.status === 404) {
-    // Create it
-    await fetch('https://api.github.com/user/repos', {
-      method: 'POST',
-      headers: ghHeaders(),
-      body: JSON.stringify({ name: REPO_NAME, private: true, description: 'RailDiary journey data', auto_init: true })
-    });
-    // Small wait for GitHub to initialize
-    await new Promise(r => setTimeout(r, 1500));
+    await fetch('https://api.github.com/user/repos', { method:'POST', headers:ghHeaders(), body:JSON.stringify({ name:REPO_NAME, private:true, description:'RailDiary journey data', auto_init:true }) });
+    await new Promise(r=>setTimeout(r,1500));
   }
 }
 
 async function loadJourneys() {
-  const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${DATA_FILE}`, { headers: ghHeaders() });
-  if (res.status === 404) {
-    journeys = [];
-    fileSHA  = null;
-    return;
-  }
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${DATA_FILE}`, { headers:ghHeaders() });
+  if (res.status === 404) { journeys=[]; fileSHA=null; return; }
   const data = await res.json();
-  fileSHA  = data.sha;
-  journeys = JSON.parse(atob(data.content.replace(/\n/g, '')));
+  fileSHA = data.sha;
+  journeys = JSON.parse(atob(data.content.replace(/\n/g,'')));
 }
 
 async function saveToGitHub() {
-  setSyncStatus('syncing', '● saving…');
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(journeys, null, 2))));
-  const body = {
-    message: `Update journeys — ${new Date().toISOString().slice(0,10)}`,
-    content,
-    ...(fileSHA ? { sha: fileSHA } : {})
-  };
-  const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${DATA_FILE}`, {
-    method: 'PUT',
-    headers: ghHeaders(),
-    body: JSON.stringify(body)
-  });
+  setSyncStatus('syncing','● saving…');
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(journeys,null,2))));
+  const body = { message:`Update journeys — ${new Date().toISOString().slice(0,10)}`, content, ...(fileSHA?{sha:fileSHA}:{}) };
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${DATA_FILE}`, { method:'PUT', headers:ghHeaders(), body:JSON.stringify(body) });
   if (!res.ok) throw new Error('Save failed');
   const data = await res.json();
   fileSHA = data.content.sha;
-  setSyncStatus('synced', '● synced');
+  setSyncStatus('synced','● synced');
 }
 
-// ── ROUTE FETCH (NTES via RapidAPI proxy / erail) ───────────────────────────
+// ── ROUTE FETCH ───────────────────────────────────────────────────────────────
 async function fetchRoute() {
   const trainNo = document.getElementById('f-trainno').value.trim();
-  if (!trainNo || trainNo.length < 4) { toast('Enter a valid train number first', 'error'); return; }
-
-  const btn = document.querySelector('.fetch-route-btn');
-  btn.textContent = 'Fetching…';
-  btn.disabled = true;
+  if (!trainNo || trainNo.length < 4) { toast('Enter a valid train number','error'); return; }
+  const btn = document.querySelector('.fetch-btn');
+  btn.textContent = 'Fetching…'; btn.disabled = true;
   fetchedRoute = null;
-
   try {
-    // Use erail.in public API (no key needed, CORS-friendly)
     const res = await fetch(`https://erail.in/rail/getTrains.aspx?TrainNo=${trainNo}&UIFlag=UNIQ&Dist=0&StationFrom=&StationTo=&AgentID=6600004&Key=dummykey`);
     const text = await res.text();
-
-    // erail returns pipe-delimited text; parse it
-    const lines = text.trim().split('\n').filter(l => l.trim());
+    const lines = text.trim().split('\n').filter(l=>l.trim());
     if (!lines.length) throw new Error('No data');
-
     const stops = [];
     for (const line of lines) {
-      const parts = line.split('~');
-      if (parts.length < 5) continue;
-      // format: StationName~StationCode~Arrival~Departure~Day~Distance...
-      stops.push({
-        name: parts[0]?.trim(),
-        code: parts[1]?.trim(),
-        arr:  parts[2]?.trim() || '--',
-        dep:  parts[3]?.trim() || '--',
-        dist: parts[5]?.trim() || ''
-      });
+      const p = line.split('~');
+      if (p.length < 5) continue;
+      stops.push({ name:p[0]?.trim(), code:p[1]?.trim(), arr:p[2]?.trim()||'--', dep:p[3]?.trim()||'--', dist:p[5]?.trim()||'' });
     }
-
-    if (!stops.length) throw new Error('No stops parsed');
-
+    if (!stops.length) throw new Error('No stops');
     fetchedRoute = stops;
-
-    // Auto-fill train name if first line has it
-    // Auto-fill from/to
     if (stops.length >= 2) {
       document.getElementById('f-from').value = stops[0].code;
-      document.getElementById('f-to').value   = stops[stops.length - 1].code;
+      document.getElementById('f-to').value   = stops[stops.length-1].code;
     }
-
     const preview = document.getElementById('route-preview');
     preview.classList.add('visible');
-    preview.innerHTML = `
-      <strong style="color:var(--green)">✓ ${stops.length} stations fetched</strong>
-      &nbsp;·&nbsp; ${stops[0].code} → ${stops[stops.length-1].code}
-      <br><span style="color:var(--muted);font-size:11px">${stops.map(s => s.code).join(' · ')}</span>
-    `;
-
-    toast(`Route loaded — ${stops.length} stations`, 'success');
-  } catch (e) {
-    toast('Could not fetch route. Fill manually.', 'error');
-    console.error(e);
+    preview.innerHTML = `<strong style="color:var(--green)">✓ ${stops.length} stations fetched</strong> · ${stops[0].code} → ${stops[stops.length-1].code}<br><span style="color:var(--muted);font-size:11px">${stops.map(s=>s.code).slice(0,12).join(' · ')}${stops.length>12?'…':''}</span>`;
+    toast(`Route loaded — ${stops.length} stations`,'success');
+  } catch(e) {
+    toast('Could not fetch route. Fill manually.','error');
   }
-
-  btn.textContent = 'Fetch Route ↗';
-  btn.disabled = false;
+  btn.textContent = 'Fetch Route ↗'; btn.disabled = false;
 }
 
 function onTrainNoInput() {
@@ -906,7 +454,7 @@ function onTrainNoInput() {
   document.getElementById('route-preview').classList.remove('visible');
 }
 
-// ── SAVE JOURNEY ────────────────────────────────────────────────────────────
+// ── SAVE ─────────────────────────────────────────────────────────────────────
 async function saveJourney() {
   const trainNo   = document.getElementById('f-trainno').value.trim();
   const trainName = document.getElementById('f-trainname').value.trim();
@@ -914,178 +462,276 @@ async function saveJourney() {
   const to        = document.getElementById('f-to').value.trim().toUpperCase();
   const date      = document.getElementById('f-date').value;
   const classType = document.getElementById('f-class').value;
-  const km        = Number(document.getElementById('f-km').value) || 0;
+  const km        = Number(document.getElementById('f-km').value)||0;
   const pnr       = document.getElementById('f-pnr').value.trim();
   const notes     = document.getElementById('f-notes').value.trim();
-
-  if (!trainName || !from || !to || !date) {
-    toast('Fill in required fields (*)' , 'error'); return;
-  }
-
-  const entry = {
-    id: Date.now(),
-    trainNo, trainName, from, to, date,
-    classType, distanceKm: km, pnr, notes,
-    route: fetchedRoute || null,
-    addedAt: new Date().toISOString()
-  };
-
+  if (!trainName||!from||!to||!date) { toast('Fill in required fields (*)','error'); return; }
+  const entry = { id:Date.now(), trainNo, trainName, from, to, date, classType, distanceKm:km, pnr, notes, route:fetchedRoute||null, addedAt:new Date().toISOString() };
   journeys.push(entry);
-
   try {
     await saveToGitHub();
-    toast('Journey saved!', 'success');
+    toast('Journey saved!','success');
     clearForm();
     renderAll();
-    showView('log', null);
-    setTimeout(() => showView('log', document.querySelectorAll('.nav-btn')[1]), 0);
-  } catch (e) {
-    journeys.pop(); // rollback
-    toast('Save failed — check connection', 'error');
+    if (mapInitialized) renderMap();
+    showView('log',null);
+    // highlight the log nav btn
+    document.querySelectorAll('.nav-btn').forEach((b,i)=>{ if(i===2) b.classList.add('active'); else b.classList.remove('active'); });
+  } catch(e) {
+    journeys.pop();
+    toast('Save failed — check connection','error');
   }
 }
 
 function clearForm() {
-  ['f-trainno','f-trainname','f-from','f-to','f-date','f-km','f-pnr','f-notes'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('f-class').value = 'SL';
+  ['f-trainno','f-trainname','f-from','f-to','f-date','f-km','f-pnr','f-notes'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('f-class').value='SL';
   document.getElementById('route-preview').classList.remove('visible');
   fetchedRoute = null;
 }
 
-// ── RENDER ───────────────────────────────────────────────────────────────────
+// ── PASSPORT / MAP ────────────────────────────────────────────────────────────
+function renderPassport() {
+  const total = journeys.length;
+  const totalKm = journeys.reduce((s,j)=>s+(j.distanceKm||0),0);
+
+  // Count all unique stations across all routes
+  const stationVisits = {}; // code -> count
+  const routeSet = new Set();
+
+  for (const j of journeys) {
+    routeSet.add(`${j.from}-${j.to}`);
+    if (j.route && j.route.length) {
+      for (const s of j.route) {
+        if (s.code) stationVisits[s.code] = (stationVisits[s.code]||0)+1;
+      }
+    } else {
+      // at minimum count from/to
+      stationVisits[j.from] = (stationVisits[j.from]||0)+1;
+      stationVisits[j.to]   = (stationVisits[j.to]||0)+1;
+    }
+  }
+
+  const uniqueStations = Object.keys(stationVisits).length;
+  const uniqueRoutes   = routeSet.size;
+
+  // Longest journey
+  const longest = [...journeys].sort((a,b)=>(b.distanceKm||0)-(a.distanceKm||0))[0];
+
+  // States visited (from station data)
+  const stateSet = new Set();
+  for (const code of Object.keys(stationVisits)) {
+    const s = STATIONS[code];
+    if (s && s.state) stateSet.add(s.state);
+  }
+
+  document.getElementById('ps-km').textContent = totalKm.toLocaleString('en-IN');
+  document.getElementById('ps-km-detail').textContent = stateSet.size ? `Across ${stateSet.size} states` : '';
+  document.getElementById('ps-stations').textContent = uniqueStations;
+  document.getElementById('ps-stn-detail').textContent = stateSet.size ? [...stateSet].slice(0,3).join(', ') + (stateSet.size>3?'…':'') : '';
+  document.getElementById('ps-routes').textContent = uniqueRoutes;
+  document.getElementById('ps-route-detail').textContent = total ? `${total} total ride${total!==1?'s':''}` : '';
+  document.getElementById('ps-longest').textContent = longest ? `${(longest.distanceKm||0).toLocaleString('en-IN')} km` : '—';
+  document.getElementById('ps-longest-detail').textContent = longest ? longest.trainName : '';
+
+  // Top stations
+  const topStn = Object.entries(stationVisits).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const topEl = document.getElementById('top-stations');
+  if (!topStn.length) { topEl.innerHTML='<div style="color:var(--muted);font-size:13px">No data yet.</div>'; }
+  else {
+    topEl.innerHTML = topStn.map(([code,count],i) => {
+      const s = STATIONS[code];
+      return `<div class="top-station-row">
+        <span class="rank-num">${i+1}</span>
+        <div class="stn-info">
+          <div class="stn-name">${s?s.name:code}</div>
+          <span class="stn-code">${code}</span>${s&&s.state?` · <span style="font-size:11px;color:var(--muted)">${s.state}</span>`:''}
+        </div>
+        <span class="stn-count">${count}×</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Fun stats
+  const nightJourneys = journeys.filter(j=>{ /* SL/3A/2A likely overnight */ return ['SL','3A','2A','1A'].includes(j.classType); }).length;
+  const classMode = Object.entries(journeys.reduce((a,j)=>{ a[j.classType]=(a[j.classType]||0)+1; return a; },{})).sort((a,b)=>b[1]-a[1])[0];
+  const avgKm = total ? Math.round(totalKm/total) : 0;
+  const earthCircum = 40075;
+  const earthPct = totalKm ? ((totalKm/earthCircum)*100).toFixed(1) : 0;
+
+  document.getElementById('fun-stats').innerHTML = `
+    <div class="fun-card">
+      <div class="fun-label">Avg journey length</div>
+      <div class="fun-val" style="color:var(--blue)">${avgKm.toLocaleString('en-IN')} km</div>
+      <div class="fun-sub">per ride</div>
+    </div>
+    <div class="fun-card">
+      <div class="fun-label">Earth circumference</div>
+      <div class="fun-val" style="color:var(--teal)">${earthPct}%</div>
+      <div class="fun-sub">of ${earthCircum.toLocaleString()} km covered</div>
+    </div>
+    <div class="fun-card">
+      <div class="fun-label">Favourite class</div>
+      <div class="fun-val" style="color:${classMode?CLASS_COLOR[classMode[0]]:'var(--muted)'}">${classMode?classMode[0]:'—'}</div>
+      <div class="fun-sub">${classMode?`${classMode[1]} of ${total} rides`:''}</div>
+    </div>
+    <div class="fun-card">
+      <div class="fun-label">Unique states</div>
+      <div class="fun-val" style="color:var(--purple)">${stateSet.size}</div>
+      <div class="fun-sub">${stateSet.size ? [...stateSet].slice(0,2).join(', ')+(stateSet.size>2?'…':'') : 'Log more journeys'}</div>
+    </div>
+  `;
+
+  renderMap(stationVisits);
+}
+
+function renderMap(stationVisits) {
+  if (!mapInitialized) {
+    map = L.map('rail-map', { zoomControl:true, attributionControl:false }).setView([22.5, 80.5], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(map);
+    mapInitialized = true;
+  } else {
+    map.eachLayer(layer=>{ if (!(layer instanceof L.TileLayer)) map.removeLayer(layer); });
+  }
+
+  if (!stationVisits) {
+    const sv = {};
+    for (const j of journeys) {
+      if (j.route) { for (const s of j.route) { if(s.code) sv[s.code]=(sv[s.code]||0)+1; } }
+      else { sv[j.from]=(sv[j.from]||0)+1; sv[j.to]=(sv[j.to]||0)+1; }
+    }
+    stationVisits = sv;
+  }
+
+  const maxVisits = Math.max(1, ...Object.values(stationVisits));
+
+  // Draw routes
+  for (const j of journeys) {
+    const stops = j.route || [{ code:j.from }, { code:j.to }];
+    const coords = stops.map(s=>STATIONS[s.code]).filter(Boolean).map(s=>[s.lat,s.lng]);
+    if (coords.length >= 2) {
+      L.polyline(coords, { color:'#f97316', weight:2, opacity:0.65, smoothFactor:1.5 }).addTo(map);
+    }
+  }
+
+  // Draw station dots
+  for (const [code, count] of Object.entries(stationVisits)) {
+    const s = STATIONS[code];
+    if (!s) continue;
+    const isTop = count === maxVisits && maxVisits > 1;
+    const radius = 4 + Math.min(8, count * 1.5);
+    const color  = isTop ? '#ef4444' : count > 2 ? '#f97316' : '#3b82f6';
+    L.circleMarker([s.lat, s.lng], {
+      radius, color:'#06090f', weight:1, fillColor:color, fillOpacity:0.85
+    }).bindPopup(`<strong>${s.name||code}</strong><br>${code}${s.state?'<br>'+s.state:''}<br><span style="color:var(--accent)">${count} visit${count!==1?'s':''}</span>`).addTo(map);
+  }
+
+  // If no journeys yet, just center on India
+  if (journeys.length === 0) {
+    map.setView([22.5, 80.5], 5);
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
 function renderAll() { renderStats(); renderJourneys(); }
 
 function renderStats() {
   const total = journeys.length;
-  const km    = journeys.reduce((s,j) => s + (j.distanceKm||0), 0);
-
+  const km    = journeys.reduce((s,j)=>s+(j.distanceKm||0),0);
+  const stateSet = new Set();
+  for (const j of journeys) {
+    const stops = j.route || [{code:j.from},{code:j.to}];
+    for (const s of stops) { const st=STATIONS[s.code]; if(st&&st.state) stateSet.add(st.state); }
+  }
   document.getElementById('s-rides').textContent = total;
   document.getElementById('s-km').textContent    = km.toLocaleString('en-IN');
-  document.getElementById('s-states').textContent = '—'; // placeholder
+  document.getElementById('s-states').textContent = stateSet.size||'—';
 
-  // Class breakdown
   const cls = {};
-  journeys.forEach(j => { cls[j.classType] = (cls[j.classType]||0)+1; });
+  journeys.forEach(j=>{ cls[j.classType]=(cls[j.classType]||0)+1; });
   const clsEl = document.getElementById('class-breakdown');
-  if (!Object.keys(cls).length) {
-    clsEl.innerHTML = '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
-  } else {
-    clsEl.innerHTML = Object.entries(cls).sort((a,b)=>b[1]-a[1]).map(([c, n]) => `
-      <div class="class-row">
-        <span class="class-tag" style="color:${CLASS_COLOR[c]||'var(--accent)'}">${c}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${(n/total)*100}%;background:${CLASS_COLOR[c]||'var(--accent)'}"></div></div>
-        <span class="class-count">${n}</span>
-      </div>
-    `).join('');
-  }
+  clsEl.innerHTML = Object.keys(cls).length ? Object.entries(cls).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`
+    <div class="class-row">
+      <span class="class-tag" style="color:${CLASS_COLOR[c]||'var(--accent)'}">${c}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(n/total)*100}%;background:${CLASS_COLOR[c]||'var(--accent)'}"></div></div>
+      <span class="class-count">${n}</span>
+    </div>`).join('') : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
 
-  // Recent
   const recEl = document.getElementById('recent-journeys');
-  const sorted = [...journeys].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
-  if (!sorted.length) {
-    recEl.innerHTML = '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
-  } else {
-    recEl.innerHTML = sorted.map(j => `
-      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:13px;color:var(--muted2)">${j.from} → ${j.to} <span style="color:var(--muted);font-size:12px">${j.trainName}</span></span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${fmtDate(j.date)}</span>
-      </div>
-    `).join('');
-  }
+  const sorted = [...journeys].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  recEl.innerHTML = sorted.length ? sorted.map(j=>`
+    <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px;color:var(--muted2)">${j.from} → ${j.to} <span style="color:var(--muted);font-size:12px">${j.trainName}</span></span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${fmtDate(j.date)}</span>
+    </div>`).join('') : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
 }
 
 function renderJourneys() {
   const q = (document.getElementById('search-input')?.value||'').toLowerCase();
-  const filtered = [...journeys]
-    .filter(j => !q || [j.trainName,j.trainNo,j.from,j.to].some(f=>(f||'').toLowerCase().includes(q)))
-    .sort((a,b)=>new Date(b.date)-new Date(a.date));
-
+  const filtered = [...journeys].filter(j=>!q||[j.trainName,j.trainNo,j.from,j.to].some(f=>(f||'').toLowerCase().includes(q))).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const el = document.getElementById('journey-list');
-  if (!filtered.length) {
-    el.innerHTML = `<div class="empty-state">${q ? 'No matches found.' : 'No journeys yet — add your first ride.'}</div>`;
-    return;
-  }
-
-  el.innerHTML = filtered.map(j => {
-    const color = CLASS_COLOR[j.classType] || 'var(--accent)';
+  if (!filtered.length) { el.innerHTML=`<div class="empty-state">${q?'No matches.':'No journeys yet — add your first ride.'}</div>`; return; }
+  el.innerHTML = filtered.map(j=>{
+    const color = CLASS_COLOR[j.classType]||'var(--accent)';
     const hasRoute = j.route && j.route.length;
-    return `
-      <div class="journey-card" id="jc-${j.id}">
-        <div class="journey-top">
-          <div class="journey-name">${j.trainName}</div>
-          <span class="badge" style="background:${color}22;color:${color}">${j.classType}</span>
-        </div>
-        <div class="journey-meta">
-          <span class="mono-sm">${j.trainNo||'—'}</span>
-          <div class="dot"></div>
-          <span class="mono-sm">${fmtDate(j.date)}</span>
-          ${j.distanceKm ? `<div class="dot"></div><span class="mono-sm">${j.distanceKm.toLocaleString('en-IN')} km</span>` : ''}
-        </div>
-        <div class="route-display">
-          <span class="station-code">${j.from}</span>
-          <span class="arrow">→</span>
-          <span class="station-code">${j.to}</span>
-        </div>
-        ${j.notes ? `<div class="journey-notes" style="margin-top:6px">${j.notes}</div>` : ''}
-        ${hasRoute ? `
-          <button class="stops-toggle" onclick="toggleStops(${j.id}, event)">Show ${j.route.length} stops ↓</button>
-          <div class="stops-list" id="stops-${j.id}">
-            ${j.route.map((s,i) => `
-              <div class="stop-item">
-                <div class="stop-dot ${i===0||i===j.route.length-1?'terminal':''}"></div>
-                <div style="flex:1">
-                  <span class="stop-name">${s.name}</span>
-                  <span class="stop-code"> · ${s.code}</span>
-                </div>
-                <span class="stop-time">${s.arr !== s.dep ? s.arr : s.dep}</span>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
+    return `<div class="journey-card">
+      <div class="journey-top">
+        <div class="journey-name">${j.trainName}</div>
+        <span class="badge" style="background:${color}22;color:${color}">${j.classType}</span>
       </div>
-    `;
+      <div class="journey-meta">
+        <span class="mono-sm">${j.trainNo||'—'}</span>
+        <div class="dot"></div>
+        <span class="mono-sm">${fmtDate(j.date)}</span>
+        ${j.distanceKm?`<div class="dot"></div><span class="mono-sm">${j.distanceKm.toLocaleString('en-IN')} km</span>`:''}
+      </div>
+      <div class="route-display">
+        <span class="station-code">${j.from}</span>
+        <span class="arrow">→</span>
+        <span class="station-code">${j.to}</span>
+      </div>
+      ${j.notes?`<div class="journey-notes">${j.notes}</div>`:''}
+      ${hasRoute?`
+        <button class="stops-toggle" onclick="toggleStops(${j.id},event)">Show ${j.route.length} stops ↓</button>
+        <div class="stops-list" id="stops-${j.id}">
+          ${j.route.map((s,i)=>`
+            <div class="stop-item">
+              <div class="stop-dot${i===0||i===j.route.length-1?' terminal':''}"></div>
+              <span class="stop-name">${s.name}</span>
+              <span class="stop-code">${s.code}</span>
+              <span class="stop-time">${s.arr!==s.dep?s.arr:s.dep}</span>
+            </div>`).join('')}
+        </div>`:''}
+    </div>`;
   }).join('');
 }
 
-function toggleStops(id, e) {
+function toggleStops(id,e) {
   e.stopPropagation();
-  const el  = document.getElementById(`stops-${id}`);
-  const btn = e.target;
-  const open = el.classList.toggle('open');
-  const j    = journeys.find(x=>x.id===id);
-  btn.textContent = open ? `Hide stops ↑` : `Show ${j.route.length} stops ↓`;
+  const el=document.getElementById(`stops-${id}`);
+  const btn=e.target;
+  const open=el.classList.toggle('open');
+  const j=journeys.find(x=>x.id===id);
+  btn.textContent=open?`Hide stops ↑`:`Show ${j.route.length} stops ↓`;
 }
 
-// ── UI HELPERS ───────────────────────────────────────────────────────────────
-function showView(name, btn) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+// ── UI ────────────────────────────────────────────────────────────────────────
+function showView(name,btn) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(`view-${name}`).classList.add('active');
-  if (btn) {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
+  if(btn){ document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  if(name==='passport') { renderPassport(); setTimeout(()=>{ if(map) map.invalidateSize(); },100); }
 }
 
-function setSyncStatus(cls, text) {
-  const el = document.getElementById('sync-status');
-  el.className = `sync-status ${cls}`;
-  el.textContent = text;
-}
-
-function fmtDate(d) {
-  if (!d) return '—';
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
-}
+function setSyncStatus(cls,text) { const el=document.getElementById('sync-status'); el.className=`sync-status ${cls}`; el.textContent=text; }
+function fmtDate(d) { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
 
 let toastTimer;
-function toast(msg, type='') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `show ${type}`;
+function toast(msg,type='') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`show ${type}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+  toastTimer=setTimeout(()=>{ el.className=''; },3000);
 }
 </script>
 </body>
