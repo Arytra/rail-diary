@@ -169,7 +169,21 @@
       .summary-strip{grid-template-columns:repeat(2,1fr);}
     }
 
-    @media(max-width:500px) {
+    
+/* PASSPORT V1 REDESIGN */
+.passport-layout{display:grid;grid-template-columns:2.2fr 1fr;gap:14px}
+.passport-sidebar{display:flex;flex-direction:column;gap:14px}
+.ticket-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ticket-inner{display:grid;grid-template-columns:90px 1fr}
+.ticket-left{background:var(--surface2);padding:14px;border-right:1px dashed var(--border2)}
+.ticket-code{font-size:18px;font-weight:700;color:var(--accent)}
+.ticket-date{font-size:12px;color:var(--muted2);margin-top:8px}
+.ticket-main{padding:14px}
+.insight-number{font-size:30px;font-weight:700;color:var(--accent)}
+.insight-text{color:var(--muted2);margin-top:6px}
+@media(max-width:900px){.passport-layout{grid-template-columns:1fr}}
+
+@media(max-width:500px) {
       .stats-grid { grid-template-columns:1fr 1fr; }
       #passport-stats { grid-template-columns:1fr 1fr; }
       .form-grid { grid-template-columns:1fr; }
@@ -232,20 +246,20 @@
     <div class="view active" id="view-passport">
       
 <div class="summary-strip passport-full">
-  <div class="summary-card"><div class="summary-value" id="sum-rides">0</div><div class="summary-label">Rides</div></div>
   <div class="summary-card"><div class="summary-value" id="sum-km">0</div><div class="summary-label">KM</div></div>
+  <div class="summary-card"><div class="summary-value" id="sum-rides">0</div><div class="summary-label">Rides</div></div>
   <div class="summary-card"><div class="summary-value" id="sum-stations">0</div><div class="summary-label">Stations</div></div>
   <div class="summary-card"><div class="summary-value" id="sum-states">0</div><div class="summary-label">States</div></div>
 </div>
 <div class="passport-dashboard">
-<div id="passport-stats">
+<div id="passport-stats" style="display:none">
         <div class="ps-card"><div class="ps-val" id="ps-km">0</div><div class="ps-sub">Kilometres railed</div><div class="ps-detail" id="ps-km-detail"></div></div>
         <div class="ps-card"><div class="ps-val" id="ps-stations">0</div><div class="ps-sub">Unique stations</div><div class="ps-detail" id="ps-stn-detail"></div></div>
         <div class="ps-card"><div class="ps-val" id="ps-routes">0</div><div class="ps-sub">Unique routes</div><div class="ps-detail" id="ps-route-detail"></div></div>
         <div class="ps-card"><div class="ps-val" id="ps-longest">—</div><div class="ps-sub">Longest single ride</div><div class="ps-detail" id="ps-longest-detail"></div></div>
       </div>
 
-      <div><div id="map-container">
+      <div class="passport-layout"><div class="passport-main"><div id="map-container">
         <div id="rail-map"></div>
         <div class="map-legend">
           <div class="legend-item"><div class="legend-line" style="background:#f97316;opacity:0.8"></div> Journey route</div>
@@ -255,12 +269,24 @@
         </div>
       </div></div>
 
-      <div class="panel"><div class="section-title">Most Visited Stations</div>
+      </div><div class="passport-sidebar">
+<div class="ticket-card">
+<div class="ticket-inner">
+<div class="ticket-left">
+<div class="ticket-code">----</div>
+<div class="ticket-date">No upcoming journey</div>
+</div>
+<div class="ticket-main">
+<div>Plan your next ride.</div>
+</div>
+</div>
+</div>
+<div class="panel"><div class="section-title">Top Stations</div>
         <div class="top-stations-list" id="top-stations"></div>
       </div>
 
       <div class="panel">
-        <div class="section-title">Fun Facts</div>
+        <div class="section-title">Journey Insights</div>
         <div class="fun-stats-grid" id="fun-stats"></div>
       </div>
       </div>
