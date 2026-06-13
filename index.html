@@ -256,7 +256,7 @@
     <!-- ADD -->
     <div class="view" id="view-add">
       <div class="panel">
-        <div class="section-title" style="margin-bottom:18px">Log a Journey</div>
+        <div class="section-title" id="journey-form-title" style="margin-bottom:18px">Log a Journey</div>
         <div class="form-grid">
           <div class="form-field full">
             <label>Train Number *</label>
@@ -347,6 +347,7 @@ async function loadStationData() {
 // ── STATE ───────────────────────────────────────────────────────────────────
 let TOKEN    = '';
 let journeys = [];
+let editingJourneyId = null;
 let fileSHA  = null;
 let fetchedRoute = null;
 let map = null;
@@ -466,11 +467,26 @@ async function saveJourney() {
   const pnr       = document.getElementById('f-pnr').value.trim();
   const notes     = document.getElementById('f-notes').value.trim();
   if (!trainName||!from||!to||!date) { toast('Fill in required fields (*)','error'); return; }
-  const entry = { id:Date.now(), trainNo, trainName, from, to, date, classType, distanceKm:km, pnr, notes, route:fetchedRoute||null, addedAt:new Date().toISOString() };
-  journeys.push(entry);
+  const entry = {
+    id: editingJourneyId || Date.now(),
+    trainNo, trainName, from, to, date, classType,
+    distanceKm: km, pnr, notes,
+    route: fetchedRoute || null,
+    addedAt: editingJourneyId
+      ? journeys.find(j => j.id === editingJourneyId)?.addedAt
+      : new Date().toISOString()
+  };
+
+  if (editingJourneyId) {
+    const idx = journeys.findIndex(j => j.id === editingJourneyId);
+    journeys[idx] = entry;
+  } else {
+    journeys.push(entry);
+  }
   try {
     await saveToGitHub();
-    toast('Journey saved!','success');
+    toast(editingJourneyId ? 'Journey updated!' : 'Journey saved!','success');
+    editingJourneyId = null;
     clearForm();
     renderAll();
     if (mapInitialized) renderMap();
@@ -488,6 +504,8 @@ function clearForm() {
   document.getElementById('f-class').value='SL';
   document.getElementById('route-preview').classList.remove('visible');
   fetchedRoute = null;
+  editingJourneyId = null;
+  document.getElementById('journey-form-title').textContent = 'Log a Journey';
 }
 
 // ── PASSPORT / MAP ────────────────────────────────────────────────────────────
@@ -691,6 +709,10 @@ function renderJourneys() {
         <span class="station-code">${j.to}</span>
       </div>
       ${j.notes?`<div class="journey-notes">${j.notes}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="stops-toggle" onclick="editJourney(${j.id});event.stopPropagation()">Edit</button>
+        <button class="stops-toggle" style="border-color:var(--red);color:var(--red)" onclick="deleteJourney(${j.id});event.stopPropagation()">Delete</button>
+      </div>
       ${hasRoute?`
         <button class="stops-toggle" onclick="toggleStops(${j.id},event)">Show ${j.route.length} stops ↓</button>
         <div class="stops-list" id="stops-${j.id}">
@@ -704,6 +726,52 @@ function renderJourneys() {
         </div>`:''}
     </div>`;
   }).join('');
+}
+
+
+function editJourney(id) {
+  const j = journeys.find(x => x.id === id);
+  if (!j) return;
+
+  editingJourneyId = id;
+
+  document.getElementById('f-trainno').value = j.trainNo || '';
+  document.getElementById('f-trainname').value = j.trainName || '';
+  document.getElementById('f-from').value = j.from || '';
+  document.getElementById('f-to').value = j.to || '';
+  document.getElementById('f-date').value = j.date || '';
+  document.getElementById('f-class').value = j.classType || 'SL';
+  document.getElementById('f-km').value = j.distanceKm || '';
+  document.getElementById('f-pnr').value = j.pnr || '';
+  document.getElementById('f-notes').value = j.notes || '';
+
+  fetchedRoute = j.route || null;
+
+  const preview = document.getElementById('route-preview');
+  if (j.route && j.route.length) {
+    preview.classList.add('visible');
+    preview.innerHTML = '<strong style="color:var(--green)">Editing existing route</strong>';
+  }
+
+  document.getElementById('journey-form-title').textContent = 'Edit Journey';
+  showView('add');
+}
+
+async function deleteJourney(id) {
+  if (!confirm('Delete this journey?')) return;
+
+  const original = [...journeys];
+  journeys = journeys.filter(j => j.id !== id);
+
+  try {
+    await saveToGitHub();
+    renderAll();
+    if (mapInitialized) renderMap();
+    toast('Journey deleted','success');
+  } catch(e) {
+    journeys = original;
+    toast('Delete failed','error');
+  }
 }
 
 function toggleStops(id,e) {
