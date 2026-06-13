@@ -579,7 +579,7 @@ async function saveJourney() {
     if (mapInitialized) renderMap();
     showView('log',null);
     // highlight the log nav btn
-    document.querySelectorAll('.nav-btn').forEach((b,i)=>{ if(i===2) b.classList.add('active'); else b.classList.remove('active'); });
+    document.querySelectorAll('.nav-btn').forEach((b,i)=>{ if(i===1) b.classList.add('active'); else b.classList.remove('active'); });
   } catch(e) {
     journeys.pop();
     toast('Save failed — check connection','error');
