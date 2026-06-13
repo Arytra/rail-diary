@@ -73,7 +73,7 @@
     .ps-card .ps-detail { font-size:12px; color:var(--muted2); margin-top:4px; }
 
     #map-container { border-radius:12px; overflow:hidden; border:1px solid var(--border); margin-bottom:14px; position:relative; }
-    #rail-map { height:420px; background:#0a1424; }
+    #rail-map { height:620px; background:#0a1424; }
 
     .map-legend { display:flex; gap:16px; flex-wrap:wrap; padding:10px 14px; background:var(--surface); border-top:1px solid var(--border); }
     .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted2); }
@@ -82,13 +82,13 @@
 
     .top-stations-list { display:flex; flex-direction:column; gap:0; }
     .top-station-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
-    .rank-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); width:20px; }
+    .rank-num { display:none; }
     .stn-info { flex:1; }
     .stn-name { font-size:13px; font-weight:500; }
     .stn-code { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
     .stn-count { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--accent); font-weight:600; }
 
-    .fun-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .fun-stats-grid { display:grid; grid-template-columns:1fr; gap:12px; }
     .fun-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; }
     .fun-card .fun-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
     .fun-card .fun-val { font-size:16px; font-weight:700; }
@@ -158,7 +158,7 @@
     .leaflet-control-zoom a { background:var(--surface2) !important; color:var(--text) !important; border-color:var(--border2) !important; }
 
     
-    .passport-dashboard { display:grid; grid-template-columns:2fr 1fr; gap:14px; }
+    .passport-dashboard { display:grid; grid-template-columns:2.8fr 1fr; gap:24px; margin-top:28px; }
     .passport-full { grid-column:1/-1; }
     .summary-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
     .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; }
@@ -593,7 +593,7 @@ function renderPassport() {
     topEl.innerHTML = topStn.map(([code,count],i) => {
       const s = STATIONS[code];
       return `<div class="top-station-row">
-        <span class="rank-num">${i+1}</span>
+        
         <div class="stn-info">
           <div class="stn-name">${s?s.name:code}</div>
           <span class="stn-code">${code}</span>${s&&s.state?` · <span style="font-size:11px;color:var(--muted)">${s.state}</span>`:''}
@@ -612,24 +612,12 @@ function renderPassport() {
 
   document.getElementById('fun-stats').innerHTML = `
     <div class="fun-card">
-      <div class="fun-label">Avg journey length</div>
-      <div class="fun-val" style="color:var(--blue)">${avgKm.toLocaleString('en-IN')} km</div>
-      <div class="fun-sub">per ride</div>
+      <div class="insight-number">${avgKm.toLocaleString('en-IN')} km</div>
+      <div class="insight-text">was your average journey length</div>
     </div>
     <div class="fun-card">
-      <div class="fun-label">Earth circumference</div>
-      <div class="fun-val" style="color:var(--teal)">${earthPct}%</div>
-      <div class="fun-sub">of ${earthCircum.toLocaleString()} km covered</div>
-    </div>
-    <div class="fun-card">
-      <div class="fun-label">Favourite class</div>
-      <div class="fun-val" style="color:${classMode?CLASS_COLOR[classMode[0]]:'var(--muted)'}">${classMode?classMode[0]:'—'}</div>
-      <div class="fun-sub">${classMode?`${classMode[1]} of ${total} rides`:''}</div>
-    </div>
-    <div class="fun-card">
-      <div class="fun-label">Unique states</div>
-      <div class="fun-val" style="color:var(--purple)">${stateSet.size}</div>
-      <div class="fun-sub">${stateSet.size ? [...stateSet].slice(0,2).join(', ')+(stateSet.size>2?'…':'') : 'Log more journeys'}</div>
+      <div class="insight-number">${earthPct}%</div>
+      <div class="insight-text">of Earth's circumference covered</div>
     </div>
   `;
 
