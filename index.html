@@ -157,6 +157,18 @@
     .leaflet-control-attribution { display:none; }
     .leaflet-control-zoom a { background:var(--surface2) !important; color:var(--text) !important; border-color:var(--border2) !important; }
 
+    
+    .passport-dashboard { display:grid; grid-template-columns:2fr 1fr; gap:14px; }
+    .passport-full { grid-column:1/-1; }
+    .summary-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .summary-value { font-size:22px; font-weight:700; color:var(--accent); }
+    .summary-label { font-size:11px; color:var(--muted); text-transform:uppercase; }
+    @media(max-width:900px){
+      .passport-dashboard{grid-template-columns:1fr;}
+      .summary-strip{grid-template-columns:repeat(2,1fr);}
+    }
+
     @media(max-width:500px) {
       .stats-grid { grid-template-columns:1fr 1fr; }
       #passport-stats { grid-template-columns:1fr 1fr; }
@@ -189,8 +201,7 @@
   <header>
     <div class="header-logo">Rail<span>Diary</span></div>
     <nav>
-      <button class="nav-btn active" onclick="showView('stats',this)">Stats</button>
-      <button class="nav-btn" onclick="showView('passport',this)">Map</button>
+      <button class="nav-btn active" onclick="showView('passport',this)">Passport</button>
       <button class="nav-btn" onclick="showView('log',this)">Journeys</button>
     </nav>
     <div class="header-right">
@@ -201,7 +212,7 @@
 
   <main>
     <!-- STATS -->
-    <div class="view active" id="view-stats">
+    <div class="view" id="view-stats">
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-val" id="s-rides">0</div><div class="stat-label">Rides</div></div>
         <div class="stat-card"><div class="stat-val" id="s-km">0</div><div class="stat-label">Total KM</div></div>
@@ -218,15 +229,23 @@
     </div>
 
     <!-- PASSPORT / MAP -->
-    <div class="view" id="view-passport">
-      <div id="passport-stats">
+    <div class="view active" id="view-passport">
+      
+<div class="summary-strip passport-full">
+  <div class="summary-card"><div class="summary-value" id="sum-rides">0</div><div class="summary-label">Rides</div></div>
+  <div class="summary-card"><div class="summary-value" id="sum-km">0</div><div class="summary-label">KM</div></div>
+  <div class="summary-card"><div class="summary-value" id="sum-stations">0</div><div class="summary-label">Stations</div></div>
+  <div class="summary-card"><div class="summary-value" id="sum-states">0</div><div class="summary-label">States</div></div>
+</div>
+<div class="passport-dashboard">
+<div id="passport-stats">
         <div class="ps-card"><div class="ps-val" id="ps-km">0</div><div class="ps-sub">Kilometres railed</div><div class="ps-detail" id="ps-km-detail"></div></div>
         <div class="ps-card"><div class="ps-val" id="ps-stations">0</div><div class="ps-sub">Unique stations</div><div class="ps-detail" id="ps-stn-detail"></div></div>
         <div class="ps-card"><div class="ps-val" id="ps-routes">0</div><div class="ps-sub">Unique routes</div><div class="ps-detail" id="ps-route-detail"></div></div>
         <div class="ps-card"><div class="ps-val" id="ps-longest">—</div><div class="ps-sub">Longest single ride</div><div class="ps-detail" id="ps-longest-detail"></div></div>
       </div>
 
-      <div id="map-container">
+      <div><div id="map-container">
         <div id="rail-map"></div>
         <div class="map-legend">
           <div class="legend-item"><div class="legend-line" style="background:#f97316;opacity:0.8"></div> Journey route</div>
@@ -234,16 +253,16 @@
           <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Intermediate stop</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Most visited</div>
         </div>
-      </div>
+      </div></div>
 
-      <div class="panel">
-        <div class="section-title">Most Visited Stations</div>
+      <div class="panel"><div class="section-title">Most Visited Stations</div>
         <div class="top-stations-list" id="top-stations"></div>
       </div>
 
       <div class="panel">
         <div class="section-title">Fun Facts</div>
         <div class="fun-stats-grid" id="fun-stats"></div>
+      </div>
       </div>
     </div>
 
@@ -256,7 +275,7 @@
     <!-- ADD -->
     <div class="view" id="view-add">
       <div class="panel">
-        <div class="section-title" id="journey-form-title" style="margin-bottom:18px">Log a Journey</div>
+        <div class="section-title" style="margin-bottom:18px">Log a Journey</div>
         <div class="form-grid">
           <div class="form-field full">
             <label>Train Number *</label>
@@ -347,7 +366,6 @@ async function loadStationData() {
 // ── STATE ───────────────────────────────────────────────────────────────────
 let TOKEN    = '';
 let journeys = [];
-let editingJourneyId = null;
 let fileSHA  = null;
 let fetchedRoute = null;
 let map = null;
@@ -375,7 +393,7 @@ async function bootApp() {
     localStorage.setItem(STORAGE_KEY, TOKEN);
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    renderAll();
+    renderAll(); renderPassport();
     setSyncStatus('synced','● synced');
   } catch(e) {
     setSyncStatus('error','● error');
@@ -467,26 +485,11 @@ async function saveJourney() {
   const pnr       = document.getElementById('f-pnr').value.trim();
   const notes     = document.getElementById('f-notes').value.trim();
   if (!trainName||!from||!to||!date) { toast('Fill in required fields (*)','error'); return; }
-  const entry = {
-    id: editingJourneyId || Date.now(),
-    trainNo, trainName, from, to, date, classType,
-    distanceKm: km, pnr, notes,
-    route: fetchedRoute || null,
-    addedAt: editingJourneyId
-      ? journeys.find(j => j.id === editingJourneyId)?.addedAt
-      : new Date().toISOString()
-  };
-
-  if (editingJourneyId) {
-    const idx = journeys.findIndex(j => j.id === editingJourneyId);
-    journeys[idx] = entry;
-  } else {
-    journeys.push(entry);
-  }
+  const entry = { id:Date.now(), trainNo, trainName, from, to, date, classType, distanceKm:km, pnr, notes, route:fetchedRoute||null, addedAt:new Date().toISOString() };
+  journeys.push(entry);
   try {
     await saveToGitHub();
-    toast(editingJourneyId ? 'Journey updated!' : 'Journey saved!','success');
-    editingJourneyId = null;
+    toast('Journey saved!','success');
     clearForm();
     renderAll();
     if (mapInitialized) renderMap();
@@ -504,8 +507,6 @@ function clearForm() {
   document.getElementById('f-class').value='SL';
   document.getElementById('route-preview').classList.remove('visible');
   fetchedRoute = null;
-  editingJourneyId = null;
-  document.getElementById('journey-form-title').textContent = 'Log a Journey';
 }
 
 // ── PASSPORT / MAP ────────────────────────────────────────────────────────────
@@ -542,6 +543,12 @@ function renderPassport() {
     const s = STATIONS[code];
     if (s && s.state) stateSet.add(s.state);
   }
+
+  
+  document.getElementById('sum-rides').textContent = total;
+  document.getElementById('sum-km').textContent = totalKm.toLocaleString('en-IN');
+  document.getElementById('sum-stations').textContent = uniqueStations;
+  document.getElementById('sum-states').textContent = stateSet.size;
 
   document.getElementById('ps-km').textContent = totalKm.toLocaleString('en-IN');
   document.getElementById('ps-km-detail').textContent = stateSet.size ? `Across ${stateSet.size} states` : '';
@@ -709,10 +716,6 @@ function renderJourneys() {
         <span class="station-code">${j.to}</span>
       </div>
       ${j.notes?`<div class="journey-notes">${j.notes}</div>`:''}
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="stops-toggle" onclick="editJourney(${j.id});event.stopPropagation()">Edit</button>
-        <button class="stops-toggle" style="border-color:var(--red);color:var(--red)" onclick="deleteJourney(${j.id});event.stopPropagation()">Delete</button>
-      </div>
       ${hasRoute?`
         <button class="stops-toggle" onclick="toggleStops(${j.id},event)">Show ${j.route.length} stops ↓</button>
         <div class="stops-list" id="stops-${j.id}">
@@ -726,52 +729,6 @@ function renderJourneys() {
         </div>`:''}
     </div>`;
   }).join('');
-}
-
-
-function editJourney(id) {
-  const j = journeys.find(x => x.id === id);
-  if (!j) return;
-
-  editingJourneyId = id;
-
-  document.getElementById('f-trainno').value = j.trainNo || '';
-  document.getElementById('f-trainname').value = j.trainName || '';
-  document.getElementById('f-from').value = j.from || '';
-  document.getElementById('f-to').value = j.to || '';
-  document.getElementById('f-date').value = j.date || '';
-  document.getElementById('f-class').value = j.classType || 'SL';
-  document.getElementById('f-km').value = j.distanceKm || '';
-  document.getElementById('f-pnr').value = j.pnr || '';
-  document.getElementById('f-notes').value = j.notes || '';
-
-  fetchedRoute = j.route || null;
-
-  const preview = document.getElementById('route-preview');
-  if (j.route && j.route.length) {
-    preview.classList.add('visible');
-    preview.innerHTML = '<strong style="color:var(--green)">Editing existing route</strong>';
-  }
-
-  document.getElementById('journey-form-title').textContent = 'Edit Journey';
-  showView('add');
-}
-
-async function deleteJourney(id) {
-  if (!confirm('Delete this journey?')) return;
-
-  const original = [...journeys];
-  journeys = journeys.filter(j => j.id !== id);
-
-  try {
-    await saveToGitHub();
-    renderAll();
-    if (mapInitialized) renderMap();
-    toast('Journey deleted','success');
-  } catch(e) {
-    journeys = original;
-    toast('Delete failed','error');
-  }
 }
 
 function toggleStops(id,e) {
