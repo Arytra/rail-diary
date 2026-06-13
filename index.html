@@ -196,9 +196,14 @@
 .passport-layout{
       display:grid;
       grid-template-columns:4fr 1fr;
-      gap:24px;
+      gap:10px;
+      align-items:stretch;
     }
-.passport-sidebar{display:flex;flex-direction:column;gap:14px}
+.passport-main{display:flex;flex-direction:column;}
+.passport-bottom{display:grid;grid-template-columns:4fr 1fr;gap:10px;margin-top:10px;}
+.passport-sidebar{display:grid;grid-template-rows:40% 60%;gap:10px;}
+
+
 .ticket-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
 .ticket-inner{display:grid;grid-template-columns:90px 1fr}
 .ticket-left{background:var(--surface2);padding:14px;border-right:1px dashed var(--border2)}
@@ -306,9 +311,23 @@
           <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Intermediate stop</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Most visited</div>
         </div>
+      </div>
+
+      <div class="passport-bottom">
+        <div class="panel class-panel">
+          <div class="section-title">Class Breakdown</div>
+          <div id="passport-class-breakdown"></div>
+        </div>
+
+        <div class="panel insights-panel">
+          <div class="section-title">Journey Insights</div>
+          <div class="fun-stats-grid" id="fun-stats"></div>
+        </div>
+      </div>
+
       </div></div>
 
-      </div><div class="passport-sidebar">
+      <div class="passport-sidebar">
 <div class="ticket-card">
 <div class="ticket-inner">
 <div class="ticket-left">
@@ -322,11 +341,6 @@
 </div>
 <div class="panel"><div class="section-title">Top Stations</div>
         <div class="top-stations-list" id="top-stations"></div>
-      </div>
-
-      <div class="panel">
-        <div class="section-title">Journey Insights</div>
-        <div class="fun-stats-grid" id="fun-stats"></div>
       </div>
       </div>
     </div>
@@ -659,6 +673,19 @@ function renderPassport() {
       <div class="insight-text">of Earth's circumference covered</div>
     </div>
   `;
+
+  
+  const cls = {};
+  journeys.forEach(j=>{ cls[j.classType]=(cls[j.classType]||0)+1; });
+  const passportCls = document.getElementById('passport-class-breakdown');
+  if(passportCls){
+    passportCls.innerHTML = Object.keys(cls).length ? Object.entries(cls).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`
+      <div class="class-row">
+        <span class="class-tag" style="color:${CLASS_COLOR[c]||'var(--accent)'}">${c}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(n/total)*100}%;background:${CLASS_COLOR[c]||'var(--accent)'}"></div></div>
+        <span class="class-count">${n}</span>
+      </div>`).join('') : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
+  }
 
   renderMap(stationVisits);
 }
