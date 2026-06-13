@@ -136,6 +136,12 @@
     .stop-time { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
     .empty-state { text-align:center; color:var(--muted); padding:60px 0; font-size:14px; }
 
+    /* JOURNEY LIST SECTION HEADERS */
+    .list-section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+    .list-section-header span:first-child { font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); font-weight:600; }
+    .list-section-count { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted2); background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:1px 6px; }
+    .upcoming-card { border-left:3px solid var(--blue); }
+
     /* ADD FORM */
     .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     .form-field { display:flex; flex-direction:column; }
@@ -433,6 +439,13 @@ const STORAGE_KEY = 'raildiary_token';
 
 const CLASS_COLOR = { SL:'#eab308','3A':'#3b82f6','2A':'#a855f7','1A':'#22c55e',CC:'#14b8a6',EC:'#f97316',GN:'#ef4444' };
 
+// A journey is "completed" once the travel date has passed (strictly before today).
+// Today's journeys count as upcoming until midnight flips them to completed.
+function isCompleted(j) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  return new Date(j.date + 'T00:00:00') < today;
+}
+
 // ── STATION COORDS (inline, subset of datameet/railways) ────────────────────
 // Full dataset loaded from CDN-hosted JSON (fetched once, cached)
 let STATIONS = {};
@@ -598,14 +611,15 @@ function clearForm() {
 
 // ── PASSPORT / MAP ────────────────────────────────────────────────────────────
 function renderPassport() {
-  const total = journeys.length;
-  const totalKm = journeys.reduce((s,j)=>s+(j.distanceKm||0),0);
+  const done = journeys.filter(isCompleted);   // ← only completed rides count
+  const total = done.length;
+  const totalKm = done.reduce((s,j)=>s+(j.distanceKm||0),0);
 
   // Count all unique stations across all routes
   const stationVisits = {}; // code -> count
   const routeSet = new Set();
 
-  for (const j of journeys) {
+  for (const j of done) {
     routeSet.add(`${j.from}-${j.to}`);
     if (j.route && j.route.length) {
       for (const s of j.route) {
@@ -622,7 +636,7 @@ function renderPassport() {
   const uniqueRoutes   = routeSet.size;
 
   // Longest journey
-  const longest = [...journeys].sort((a,b)=>(b.distanceKm||0)-(a.distanceKm||0))[0];
+  const longest = [...done].sort((a,b)=>(b.distanceKm||0)-(a.distanceKm||0))[0];
 
   // States visited (from station data)
   const stateSet = new Set();
@@ -665,8 +679,6 @@ function renderPassport() {
   }
 
   // Fun stats
-  const nightJourneys = journeys.filter(j=>{ /* SL/3A/2A likely overnight */ return ['SL','3A','2A','1A'].includes(j.classType); }).length;
-  const classMode = Object.entries(journeys.reduce((a,j)=>{ a[j.classType]=(a[j.classType]||0)+1; return a; },{})).sort((a,b)=>b[1]-a[1])[0];
   const avgKm = total ? Math.round(totalKm/total) : 0;
   const earthCircum = 40075;
   const earthPct = totalKm ? ((totalKm/earthCircum)*100).toFixed(1) : 0;
@@ -684,7 +696,7 @@ function renderPassport() {
 
   
   const cls = {};
-  journeys.forEach(j=>{ cls[j.classType]=(cls[j.classType]||0)+1; });
+  done.forEach(j=>{ cls[j.classType]=(cls[j.classType]||0)+1; });
   const passportCls = document.getElementById('passport-class-breakdown');
   if(passportCls){
     passportCls.innerHTML = Object.keys(cls).length ? Object.entries(cls).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`
@@ -736,7 +748,7 @@ function renderMap(stationVisits) {
 
   if (!stationVisits) {
     const sv = {};
-    for (const j of journeys) {
+    for (const j of journeys.filter(isCompleted)) {
       if (j.route) { for (const s of j.route) { if(s.code) sv[s.code]=(sv[s.code]||0)+1; } }
       else { sv[j.from]=(sv[j.from]||0)+1; sv[j.to]=(sv[j.to]||0)+1; }
     }
@@ -745,8 +757,8 @@ function renderMap(stationVisits) {
 
   const maxVisits = Math.max(1, ...Object.values(stationVisits));
 
-  // Draw routes
-  for (const j of journeys) {
+  // Draw routes (completed journeys only)
+  for (const j of journeys.filter(isCompleted)) {
     const stops = j.route || [{ code:j.from }, { code:j.to }];
     const coords = stops.map(s=>STATIONS[s.code]).filter(Boolean).map(s=>[s.lat,s.lng]);
     if (coords.length >= 2) {
@@ -776,10 +788,11 @@ function renderMap(stationVisits) {
 function renderAll() { renderStats(); renderJourneys(); }
 
 function renderStats() {
-  const total = journeys.length;
-  const km    = journeys.reduce((s,j)=>s+(j.distanceKm||0),0);
+  const done = journeys.filter(isCompleted);
+  const total = done.length;
+  const km    = done.reduce((s,j)=>s+(j.distanceKm||0),0);
   const stateSet = new Set();
-  for (const j of journeys) {
+  for (const j of done) {
     const stops = j.route || [{code:j.from},{code:j.to}];
     for (const s of stops) { const st=STATIONS[s.code]; if(st&&st.state) stateSet.add(st.state); }
   }
@@ -788,7 +801,7 @@ function renderStats() {
   document.getElementById('s-states').textContent = stateSet.size||'—';
 
   const cls = {};
-  journeys.forEach(j=>{ cls[j.classType]=(cls[j.classType]||0)+1; });
+  done.forEach(j=>{ cls[j.classType]=(cls[j.classType]||0)+1; });
   const clsEl = document.getElementById('class-breakdown');
   clsEl.innerHTML = Object.keys(cls).length ? Object.entries(cls).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`
     <div class="class-row">
@@ -798,7 +811,7 @@ function renderStats() {
     </div>`).join('') : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
 
   const recEl = document.getElementById('recent-journeys');
-  const sorted = [...journeys].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const sorted = [...done].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   recEl.innerHTML = sorted.length ? sorted.map(j=>`
     <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:13px;color:var(--muted2)">${j.from} → ${j.to} <span style="color:var(--muted);font-size:12px">${j.trainName}</span></span>
@@ -808,16 +821,26 @@ function renderStats() {
 
 function renderJourneys() {
   const q = (document.getElementById('search-input')?.value||'').toLowerCase();
-  const filtered = [...journeys].filter(j=>!q||[j.trainName,j.trainNo,j.from,j.to].some(f=>(f||'').toLowerCase().includes(q))).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const all = journeys.filter(j=>!q||[j.trainName,j.trainNo,j.from,j.to].some(f=>(f||'').toLowerCase().includes(q)));
   const el = document.getElementById('journey-list');
-  if (!filtered.length) { el.innerHTML=`<div class="empty-state">${q?'No matches.':'No journeys yet — add your first ride.'}</div>`; return; }
-  el.innerHTML = filtered.map(j=>{
+  if (!all.length) { el.innerHTML=`<div class="empty-state">${q?'No matches.':'No journeys yet — add your first ride.'}</div>`; return; }
+
+  const upcoming  = all.filter(j=>!isCompleted(j)).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const completed = all.filter(j=> isCompleted(j)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  function cardHtml(j, isUpcoming) {
     const color = CLASS_COLOR[j.classType]||'var(--accent)';
     const hasRoute = j.route && j.route.length;
-    return `<div class="journey-card">
+    const upcomingBadge = isUpcoming
+      ? `<span class="badge" style="background:#3b82f622;color:#3b82f6;margin-right:6px">Upcoming</span>`
+      : '';
+    return `<div class="journey-card${isUpcoming?' upcoming-card':''}">
       <div class="journey-top">
         <div class="journey-name">${j.trainName}</div>
-        <span class="badge" style="background:${color}22;color:${color}">${j.classType}</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          ${upcomingBadge}
+          <span class="badge" style="background:${color}22;color:${color}">${j.classType}</span>
+        </div>
       </div>
       <div class="journey-meta">
         <span class="mono-sm">${j.trainNo||'—'}</span>
@@ -843,7 +866,27 @@ function renderJourneys() {
             </div>`).join('')}
         </div>`:''}
     </div>`;
-  }).join('');
+  }
+
+  let html = '';
+
+  if (upcoming.length) {
+    html += `<div class="list-section-header">
+      <span>Upcoming</span>
+      <span class="list-section-count">${upcoming.length}</span>
+    </div>`;
+    html += upcoming.map(j=>cardHtml(j,true)).join('');
+  }
+
+  if (completed.length) {
+    html += `<div class="list-section-header" style="${upcoming.length?'margin-top:20px':''}">
+      <span>Completed</span>
+      <span class="list-section-count">${completed.length}</span>
+    </div>`;
+    html += completed.map(j=>cardHtml(j,false)).join('');
+  }
+
+  el.innerHTML = html;
 }
 
 function toggleStops(id,e) {
