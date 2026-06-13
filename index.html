@@ -331,11 +331,16 @@
 <div class="ticket-card">
 <div class="ticket-inner">
 <div class="ticket-left">
-<div class="ticket-code">----</div>
-<div class="ticket-date">No upcoming journey</div>
+<div class="ticket-code" id="up-trainno">----</div>
+<div class="ticket-date" id="up-date">No upcoming journey</div>
 </div>
 <div class="ticket-main">
-<div>Plan your next ride.</div>
+<div style="font-size:18px;font-weight:700;margin-bottom:10px" id="up-trainname">Plan your next ride.</div>
+<div style="display:flex;justify-content:space-between;margin-bottom:12px">
+  <div><div style="font-size:11px;color:var(--muted)">FROM</div><div id="up-from">—</div></div>
+  <div><div style="font-size:11px;color:var(--muted)">TO</div><div id="up-to">—</div></div>
+</div>
+<div id="up-countdown" style="color:var(--accent);font-weight:700"></div>
 </div>
 </div>
 </div>
@@ -687,7 +692,34 @@ function renderPassport() {
       </div>`).join('') : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
   }
 
+  renderUpcomingJourney();
   renderMap(stationVisits);
+}
+
+
+function renderUpcomingJourney(){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const upcoming = journeys
+    .filter(j => new Date(j.date + 'T00:00:00') >= today)
+    .sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+
+  if(!upcoming) return;
+
+  document.getElementById('up-trainno').textContent = upcoming.trainNo || '----';
+  document.getElementById('up-date').textContent = fmtDate(upcoming.date);
+  document.getElementById('up-trainname').textContent = upcoming.trainName;
+  document.getElementById('up-from').textContent = upcoming.from;
+  document.getElementById('up-to').textContent = upcoming.to;
+
+  const tripDate = new Date(upcoming.date + 'T00:00:00');
+  const diff = tripDate - new Date();
+  const days = Math.max(0, Math.floor(diff / 86400000));
+  const hours = Math.max(0, Math.floor((diff % 86400000) / 3600000));
+
+  document.getElementById('up-countdown').textContent =
+    days === 0 && hours === 0 ? 'Today' : `${days}d ${hours}h remaining`;
 }
 
 function renderMap(stationVisits) {
