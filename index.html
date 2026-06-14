@@ -617,6 +617,19 @@ function getStopsFromEditor() {
   return stops;
 }
 
+// Ensures the saved route always starts at `from` and ends at `to`,
+// so terminal markers/highlighting land on the journey's actual endpoints.
+function buildFullRoute(from, to, enteredStops) {
+  const stops = enteredStops.filter(s => s.code !== from && s.code !== to);
+  if (!stops.length) {
+    // No intermediate stops entered — only build a route if we know both endpoints
+    return null;
+  }
+  const fromStop = STATIONS[from] ? { name: STATIONS[from].name, code: from, arr:'--', dep:'--' } : { name: from, code: from, arr:'--', dep:'--' };
+  const toStop   = STATIONS[to]   ? { name: STATIONS[to].name,   code: to,   arr:'--', dep:'--' } : { name: to,   code: to,   arr:'--', dep:'--' };
+  return [fromStop, ...stops, toStop];
+}
+
 function populateStopsEditor(route) {
   const rows = document.getElementById('stops-editor-rows');
   rows.innerHTML = '';
@@ -644,7 +657,7 @@ async function saveJourney() {
   if (!trainName||!from||!to||!date) { toast('Fill in required fields (*)','error'); return; }
 
   const enteredStops = getStopsFromEditor();
-  const route = enteredStops.length >= 2 ? enteredStops : null;
+  const route = buildFullRoute(from, to, enteredStops);
 
   if (editingId !== null) {
     // ── UPDATE EXISTING ──
@@ -701,10 +714,11 @@ function editJourney(id, e) {
   document.getElementById('f-km').value        = j.distanceKm != null ? j.distanceKm : '';
   document.getElementById('f-pnr').value       = j.pnr || '';
   document.getElementById('f-notes').value     = j.notes || '';
-  populateStopsEditor(hasValidRoute(j) ? j.route : null);
+  const intermediateStops = hasValidRoute(j) ? j.route.filter(s => s.code !== j.from && s.code !== j.to) : [];
+  populateStopsEditor(intermediateStops);
   const editor = document.getElementById('stops-editor');
   const toggle = document.querySelector('.stops-editor-toggle');
-  const hasStops = hasValidRoute(j);
+  const hasStops = intermediateStops.length > 0;
   editor.classList.toggle('open', hasStops);
   toggle.classList.toggle('open', hasStops);
   document.getElementById('add-form-title').textContent = 'Edit Journey';
