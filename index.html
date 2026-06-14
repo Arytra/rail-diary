@@ -282,7 +282,7 @@
   <div class="summary-card"><div class="summary-value" id="sum-states">0</div><div class="summary-label">States</div></div>
 </div>
 <div class="passport-dashboard">
-<div id="passport-stats" style="display:none">
+<div id="passport-stats">
         <div class="ps-card"><div class="ps-val" id="ps-km">0</div><div class="ps-sub">Kilometres railed</div><div class="ps-detail" id="ps-km-detail"></div></div>
         <div class="ps-card"><div class="ps-val" id="ps-stations">0</div><div class="ps-sub">Unique stations</div><div class="ps-detail" id="ps-stn-detail"></div></div>
         <div class="ps-card"><div class="ps-val" id="ps-routes">0</div><div class="ps-sub">Unique routes</div><div class="ps-detail" id="ps-route-detail"></div></div>
@@ -398,7 +398,7 @@
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn-secondary" onclick="showView('log',null)">Cancel</button>
+          <button class="btn-secondary" onclick="showView('log', document.querySelectorAll('.nav-btn')[1])">Cancel</button>
           <button class="btn-save" onclick="saveJourney()">Save Journey</button>
         </div>
       </div>
@@ -460,6 +460,7 @@ async function initApp() {
   const t = document.getElementById('gh-token').value.trim();
   if (!t) { toast('Paste your GitHub token first','error'); return; }
   TOKEN = t;
+  localStorage.setItem(STORAGE_KEY, TOKEN);
   bootApp();
 }
 
@@ -468,14 +469,13 @@ async function bootApp() {
   try {
     await ensureRepo();
     await loadJourneys();
-    localStorage.setItem(STORAGE_KEY, TOKEN);
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
     renderAll(); renderPassport();
     setSyncStatus('synced','● synced');
   } catch(e) {
     setSyncStatus('error','● error');
-    toast('Could not connect. Check your token.','error');
+    toast(e.message || 'Could not connect. Check your token.','error');
     console.error(e);
   }
 }
@@ -498,9 +498,14 @@ async function ensureRepo() {
 async function loadJourneys() {
   const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${DATA_FILE}`, { headers:ghHeaders() });
   if (res.status === 404) { journeys=[]; fileSHA=null; return; }
+  if (!res.ok) throw new Error(`GitHub error ${res.status}`);
   const data = await res.json();
   fileSHA = data.sha;
-  journeys = JSON.parse(atob(data.content.replace(/\n/g,'')));
+  try {
+    journeys = JSON.parse(atob(data.content.replace(/\n/g,'')));
+  } catch(e) {
+    throw new Error('journeys.json on GitHub contains invalid JSON — check the file manually.');
+  }
 }
 
 async function saveToGitHub() {
@@ -572,10 +577,7 @@ async function saveJourney() {
     toast('Journey saved!','success');
     clearForm();
     renderAll();
-    renderPassport();
-    showView('log',null);
-    // highlight the log nav btn
-    document.querySelectorAll('.nav-btn').forEach((b,i)=>{ if(i===1) b.classList.add('active'); else b.classList.remove('active'); });
+    showView('log', document.querySelectorAll('.nav-btn')[1]);
   } catch(e) {
     journeys.pop();
     toast('Save failed — check connection','error');
@@ -616,8 +618,9 @@ function renderPassport() {
   const uniqueStations = Object.keys(stationVisits).length;
   const uniqueRoutes   = routeSet.size;
 
-  // Longest journey
-  const longest = [...done].sort((a,b)=>(b.distanceKm||0)-(a.distanceKm||0))[0];
+  // Longest journey (only among rides where km was entered)
+  const doneWithKmSorted = [...doneWithKm].sort((a,b)=>(b.distanceKm||0)-(a.distanceKm||0));
+  const longest = doneWithKmSorted[0] || null;
 
   // States visited (from station data)
   const stateSet = new Set();
@@ -701,17 +704,25 @@ function renderUpcomingJourney(){
     .filter(j => new Date(j.date + 'T00:00:00') >= today)
     .sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
 
-  if(!upcoming) return;
+  if(!upcoming) {
+    document.getElementById('up-trainno').textContent  = '----';
+    document.getElementById('up-date').textContent     = 'No upcoming journey';
+    document.getElementById('up-trainname').textContent= 'Plan your next ride.';
+    document.getElementById('up-from').textContent     = '—';
+    document.getElementById('up-to').textContent       = '—';
+    document.getElementById('up-countdown').textContent= '';
+    return;
+  }
 
-  document.getElementById('up-trainno').textContent = upcoming.trainNo || '----';
-  document.getElementById('up-date').textContent = fmtDate(upcoming.date);
+  document.getElementById('up-trainno').textContent   = upcoming.trainNo || '----';
+  document.getElementById('up-date').textContent      = fmtDate(upcoming.date);
   document.getElementById('up-trainname').textContent = upcoming.trainName;
-  document.getElementById('up-from').textContent = upcoming.from;
-  document.getElementById('up-to').textContent = upcoming.to;
+  document.getElementById('up-from').textContent      = upcoming.from;
+  document.getElementById('up-to').textContent        = upcoming.to;
 
   const tripDate = new Date(upcoming.date + 'T00:00:00');
   const diff = tripDate - new Date();
-  const days = Math.max(0, Math.floor(diff / 86400000));
+  const days  = Math.max(0, Math.floor(diff / 86400000));
   const hours = Math.max(0, Math.floor((diff % 86400000) / 3600000));
 
   document.getElementById('up-countdown').textContent =
