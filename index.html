@@ -193,11 +193,26 @@
     .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color:var(--accent); }
     .form-field select { cursor:pointer; }
     .form-field textarea { resize:vertical; min-height:72px; }
-    .fetch-row { display:flex; gap:10px; align-items:flex-end; }
     .fetch-btn { background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:9px 14px; color:var(--muted2); font-family:'Space Grotesk',sans-serif; font-size:13px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
     .fetch-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .route-preview { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-top:8px; font-size:12px; color:var(--muted2); display:none; }
-    .route-preview.visible { display:block; }
+
+    /* MANUAL STOPS EDITOR */
+    .stops-editor-toggle { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:10px 14px; color:var(--muted2); font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; cursor:pointer; text-align:left; transition:all 0.15s; display:flex; align-items:center; gap:8px; }
+    .stops-editor-toggle:hover { border-color:var(--accent); color:var(--accent); }
+    .stops-editor-toggle #stops-editor-arrow { transition:transform 0.15s; display:inline-block; }
+    .stops-editor-toggle.open #stops-editor-arrow { transform:rotate(90deg); }
+    .stops-editor-count { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+    .stops-editor { display:none; margin-top:10px; }
+    .stops-editor.open { display:block; }
+    .stops-editor-rows { display:flex; flex-direction:column; gap:8px; }
+    .stop-row { display:flex; align-items:center; gap:8px; }
+    .stop-row .stop-row-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); width:20px; flex-shrink:0; text-align:center; }
+    .stop-row input { flex-shrink:0; width:90px; background:var(--bg); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:13px; outline:none; text-transform:uppercase; }
+    .stop-row input:focus { border-color:var(--accent); }
+    .stop-row .stop-row-name { flex:1; font-size:12px; color:var(--muted2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .stop-row .stop-row-remove { background:none; border:1px solid var(--border2); border-radius:6px; width:30px; height:30px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--muted2); cursor:pointer; transition:all 0.15s; }
+    .stop-row .stop-row-remove:hover { border-color:var(--red); color:var(--red); }
+    .stop-row .stop-row-remove svg { width:13px; height:13px; }
     .form-actions { display:flex; gap:10px; margin-top:20px; }
     .btn-secondary { flex:1; background:none; border:1px solid var(--border2); border-radius:8px; padding:11px; color:var(--muted2); font-family:'Space Grotesk',sans-serif; font-size:14px; cursor:pointer; }
     .btn-secondary:hover { border-color:var(--text); color:var(--text); }
@@ -353,16 +368,12 @@
         <div class="section-title" style="margin-bottom:18px" id="add-form-title">Log a Journey</div>
         <div class="form-grid">
           <div class="form-field full">
-            <label>Train Number *</label>
-            <div class="fetch-row">
-              <input type="text" id="f-trainno" placeholder="12621" style="flex:1" oninput="onTrainNoInput()" />
-              <button class="fetch-btn" onclick="fetchRoute()">Fetch Route ↗</button>
-            </div>
+            <label>Train Number</label>
+            <input type="text" id="f-trainno" placeholder="12621" />
           </div>
           <div class="form-field full">
             <label>Train Name *</label>
             <input type="text" id="f-trainname" placeholder="Tamil Nadu Express" />
-            <div class="route-preview" id="route-preview"></div>
           </div>
           <div class="form-field">
             <label>From (Station Code) *</label>
@@ -400,6 +411,16 @@
             <label>Notes</label>
             <textarea id="f-notes" placeholder="Upper berth, arrived on time, had biryani at Vijayawada…"></textarea>
           </div>
+          <div class="form-field full">
+            <button type="button" class="stops-editor-toggle" onclick="toggleStopsEditor()">
+              <span id="stops-editor-arrow">▸</span> Add intermediate stops <span id="stops-editor-count" class="stops-editor-count"></span>
+            </button>
+            <div class="stops-editor" id="stops-editor">
+              <div class="stops-editor-rows" id="stops-editor-rows"></div>
+              <button type="button" class="fetch-btn" style="margin-top:8px" onclick="addStopRow()">+ Add Stop</button>
+              <div style="font-size:11px;color:var(--muted);margin-top:8px">Enter station codes in order, from origin to destination. Station names are filled in automatically where known.</div>
+            </div>
+          </div>
         </div>
         <div class="form-actions">
           <button class="btn-secondary" onclick="cancelForm()">Cancel</button>
@@ -428,6 +449,11 @@ function isCompleted(j) {
   return new Date(j.date + 'T00:00:00') < today;
 }
 
+// A route is only usable if it has at least 2 stops with real station codes.
+function hasValidRoute(j) {
+  return !!(j.route && j.route.length >= 2 && j.route.every(s => s && s.code));
+}
+
 // ── STATION COORDS (inline, subset of datameet/railways) ────────────────────
 // Full dataset loaded from CDN-hosted JSON (fetched once, cached)
 let STATIONS = {};
@@ -449,7 +475,6 @@ async function loadStationData() {
 let TOKEN    = '';
 let journeys = [];
 let fileSHA  = null;
-let fetchedRoute = null;
 let editingId = null;
 let map = null;
 let mapInitialized = false;
@@ -519,43 +544,90 @@ async function saveToGitHub() {
   setSyncStatus('synced','● synced');
 }
 
-// ── ROUTE FETCH ───────────────────────────────────────────────────────────────
-async function fetchRoute() {
-  const trainNo = document.getElementById('f-trainno').value.trim();
-  if (!trainNo || trainNo.length < 4) { toast('Enter a valid train number','error'); return; }
-  const btn = document.querySelector('.fetch-btn');
-  btn.textContent = 'Fetching…'; btn.disabled = true;
-  fetchedRoute = null;
-  try {
-    const res = await fetch(`https://erail.in/rail/getTrains.aspx?TrainNo=${trainNo}&UIFlag=UNIQ&Dist=0&StationFrom=&StationTo=&AgentID=6600004&Key=dummykey`);
-    const text = await res.text();
-    const lines = text.trim().split('\n').filter(l=>l.trim());
-    if (!lines.length) throw new Error('No data');
-    const stops = [];
-    for (const line of lines) {
-      const p = line.split('~');
-      if (p.length < 5) continue;
-      stops.push({ name:p[0]?.trim(), code:p[1]?.trim(), arr:p[2]?.trim()||'--', dep:p[3]?.trim()||'--', dist:p[5]?.trim()||'' });
-    }
-    if (!stops.length) throw new Error('No stops');
-    fetchedRoute = stops;
-    if (stops.length >= 2) {
-      document.getElementById('f-from').value = stops[0].code;
-      document.getElementById('f-to').value   = stops[stops.length-1].code;
-    }
-    const preview = document.getElementById('route-preview');
-    preview.classList.add('visible');
-    preview.innerHTML = `<strong style="color:var(--green)">✓ ${stops.length} stations fetched</strong> · ${stops[0].code} → ${stops[stops.length-1].code}<br><span style="color:var(--muted);font-size:11px">${stops.map(s=>s.code).slice(0,12).join(' · ')}${stops.length>12?'…':''}</span>`;
-    toast(`Route loaded — ${stops.length} stations`,'success');
-  } catch(e) {
-    toast('Could not fetch route. Fill manually.','error');
+// ── MANUAL STOPS EDITOR ───────────────────────────────────────────────────────
+function toggleStopsEditor() {
+  const editor = document.getElementById('stops-editor');
+  const toggle = document.querySelector('.stops-editor-toggle');
+  const open = editor.classList.toggle('open');
+  toggle.classList.toggle('open', open);
+  if (open && !editor.dataset.initialized) {
+    // Start with two empty rows (origin + destination) if nothing entered yet
+    addStopRow();
+    addStopRow();
+    editor.dataset.initialized = '1';
   }
-  btn.textContent = 'Fetch Route ↗'; btn.disabled = false;
 }
 
-function onTrainNoInput() {
-  fetchedRoute = null;
-  document.getElementById('route-preview').classList.remove('visible');
+function addStopRow(code) {
+  const rows = document.getElementById('stops-editor-rows');
+  const row = document.createElement('div');
+  row.className = 'stop-row';
+  row.innerHTML = `
+    <span class="stop-row-num"></span>
+    <input type="text" placeholder="BZA" maxlength="8" oninput="this.value=this.value.toUpperCase();onStopCodeInput(this)" />
+    <span class="stop-row-name"></span>
+    <button type="button" class="stop-row-remove" title="Remove" onclick="removeStopRow(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+    </button>`;
+  rows.appendChild(row);
+  if (code) {
+    const input = row.querySelector('input');
+    input.value = code;
+    onStopCodeInput(input);
+  }
+  renumberStopRows();
+  updateStopsEditorCount();
+}
+
+function removeStopRow(btn) {
+  btn.closest('.stop-row').remove();
+  renumberStopRows();
+  updateStopsEditorCount();
+}
+
+function renumberStopRows() {
+  document.querySelectorAll('#stops-editor-rows .stop-row').forEach((row,i) => {
+    row.querySelector('.stop-row-num').textContent = i+1;
+  });
+}
+
+function onStopCodeInput(input) {
+  const code = input.value.trim().toUpperCase();
+  const nameEl = input.closest('.stop-row').querySelector('.stop-row-name');
+  const s = STATIONS[code];
+  nameEl.textContent = s ? s.name : (code ? '' : '');
+}
+
+function updateStopsEditorCount() {
+  const rows = document.querySelectorAll('#stops-editor-rows .stop-row');
+  const filled = [...rows].filter(r => r.querySelector('input').value.trim()).length;
+  const countEl = document.getElementById('stops-editor-count');
+  countEl.textContent = filled >= 2 ? `(${filled} stops)` : '';
+}
+
+function getStopsFromEditor() {
+  const rows = document.querySelectorAll('#stops-editor-rows .stop-row');
+  const stops = [];
+  for (const row of rows) {
+    const code = row.querySelector('input').value.trim().toUpperCase();
+    if (!code) continue;
+    const s = STATIONS[code];
+    stops.push({ name: s ? s.name : code, code, arr:'--', dep:'--' });
+  }
+  return stops;
+}
+
+function populateStopsEditor(route) {
+  const rows = document.getElementById('stops-editor-rows');
+  rows.innerHTML = '';
+  const editor = document.getElementById('stops-editor');
+  if (route && route.length) {
+    for (const s of route) addStopRow(s.code);
+    editor.dataset.initialized = '1';
+  } else {
+    editor.dataset.initialized = '';
+  }
+  updateStopsEditorCount();
 }
 
 // ── SAVE ─────────────────────────────────────────────────────────────────────
@@ -571,12 +643,14 @@ async function saveJourney() {
   const notes     = document.getElementById('f-notes').value.trim();
   if (!trainName||!from||!to||!date) { toast('Fill in required fields (*)','error'); return; }
 
+  const enteredStops = getStopsFromEditor();
+  const route = enteredStops.length >= 2 ? enteredStops : null;
+
   if (editingId !== null) {
     // ── UPDATE EXISTING ──
     const idx = journeys.findIndex(j=>j.id===editingId);
     if (idx === -1) { toast('Journey not found','error'); return; }
     const original = journeys[idx];
-    const route = fetchedRoute !== null ? fetchedRoute : original.route;
     const updated = { ...original, trainNo, trainName, from, to, date, classType, distanceKm:km, pnr, notes, route };
     journeys[idx] = updated;
     try {
@@ -596,7 +670,7 @@ async function saveJourney() {
   }
 
   // ── CREATE NEW ──
-  const entry = { id:Date.now(), trainNo, trainName, from, to, date, classType, distanceKm:km, pnr, notes, route:fetchedRoute||null, addedAt:new Date().toISOString() };
+  const entry = { id:Date.now(), trainNo, trainName, from, to, date, classType, distanceKm:km, pnr, notes, route, addedAt:new Date().toISOString() };
   journeys.push(entry);
   try {
     await saveToGitHub();
@@ -627,15 +701,12 @@ function editJourney(id, e) {
   document.getElementById('f-km').value        = j.distanceKm != null ? j.distanceKm : '';
   document.getElementById('f-pnr').value       = j.pnr || '';
   document.getElementById('f-notes').value     = j.notes || '';
-  fetchedRoute = null; // unchanged unless user re-fetches
-  const preview = document.getElementById('route-preview');
-  if (j.route && j.route.length) {
-    preview.classList.add('visible');
-    preview.innerHTML = `<strong style="color:var(--green)">✓ ${j.route.length} stations on file</strong> · ${j.route[0].code} → ${j.route[j.route.length-1].code}<br><span style="color:var(--muted);font-size:11px">${j.route.map(s=>s.code).slice(0,12).join(' · ')}${j.route.length>12?'…':''}</span><br><span style="color:var(--muted);font-size:11px">Fetch again to refresh the route.</span>`;
-  } else {
-    preview.classList.remove('visible');
-    preview.innerHTML = '';
-  }
+  populateStopsEditor(hasValidRoute(j) ? j.route : null);
+  const editor = document.getElementById('stops-editor');
+  const toggle = document.querySelector('.stops-editor-toggle');
+  const hasStops = hasValidRoute(j);
+  editor.classList.toggle('open', hasStops);
+  toggle.classList.toggle('open', hasStops);
   document.getElementById('add-form-title').textContent = 'Edit Journey';
   document.getElementById('btn-save-journey').textContent = 'Update Journey';
   showView('add', null);
@@ -667,9 +738,11 @@ function cancelForm() {
 function clearForm() {
   ['f-trainno','f-trainname','f-from','f-to','f-date','f-km','f-pnr','f-notes'].forEach(id=>{ document.getElementById(id).value=''; });
   document.getElementById('f-class').value='SL';
-  document.getElementById('route-preview').classList.remove('visible');
-  document.getElementById('route-preview').innerHTML = '';
-  fetchedRoute = null;
+  document.getElementById('stops-editor-rows').innerHTML = '';
+  document.getElementById('stops-editor').classList.remove('open');
+  document.getElementById('stops-editor').dataset.initialized = '';
+  document.querySelector('.stops-editor-toggle').classList.remove('open');
+  updateStopsEditorCount();
   editingId = null;
   document.getElementById('add-form-title').textContent = 'Log a Journey';
   document.getElementById('btn-save-journey').textContent = 'Save Journey';
@@ -687,11 +760,7 @@ function renderPassport() {
   const routeSet = new Set();
   for (const j of done) {
     routeSet.add(`${j.from}-${j.to}`);
-    if (j.route && j.route.length) {
-      for (const s of j.route) {
-        if (s.code) stationVisits[s.code] = (stationVisits[s.code]||0)+1;
-      }
-    } else {
+    if (hasValidRoute(j)) {
       stationVisits[j.from] = (stationVisits[j.from]||0)+1;
       stationVisits[j.to]   = (stationVisits[j.to]||0)+1;
     }
@@ -823,7 +892,7 @@ function renderMap(stationVisits) {
   if (!stationVisits) {
     const sv = {};
     for (const j of journeys.filter(isCompleted)) {
-      if (j.route) { for (const s of j.route) { if(s.code) sv[s.code]=(sv[s.code]||0)+1; } }
+      if (hasValidRoute(j)) { for (const s of j.route) { if(s.code) sv[s.code]=(sv[s.code]||0)+1; } }
       else { sv[j.from]=(sv[j.from]||0)+1; sv[j.to]=(sv[j.to]||0)+1; }
     }
     stationVisits = sv;
@@ -833,7 +902,7 @@ function renderMap(stationVisits) {
 
   // Draw routes (completed journeys only)
   for (const j of journeys.filter(isCompleted)) {
-    const stops = j.route || [{ code:j.from }, { code:j.to }];
+    const stops = hasValidRoute(j) ? j.route : [{ code:j.from }, { code:j.to }];
     const coords = stops.map(s=>STATIONS[s.code]).filter(Boolean).map(s=>[s.lat,s.lng]);
     if (coords.length >= 2) {
       L.polyline(coords, { color:'#f97316', weight:2, opacity:0.65, smoothFactor:1.5 }).addTo(map);
@@ -872,7 +941,7 @@ function renderJourneys() {
 
   function cardHtml(j, isUpcoming) {
     const color = CLASS_COLOR[j.classType]||'var(--accent)';
-    const hasRoute = j.route && j.route.length;
+    const hasRoute = hasValidRoute(j);
     const upcomingBadge = isUpcoming
       ? `<span class="badge" style="background:#3b82f622;color:#3b82f6;margin-right:6px">Upcoming</span>`
       : '';
