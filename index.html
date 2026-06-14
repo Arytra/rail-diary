@@ -914,6 +914,13 @@ function renderMap(stationVisits) {
 
   const maxVisits = Math.max(1, ...Object.values(stationVisits));
 
+  // Stations that are an endpoint (from/to) of any completed journey
+  const terminalCodes = new Set();
+  for (const j of journeys.filter(isCompleted)) {
+    terminalCodes.add(j.from);
+    terminalCodes.add(j.to);
+  }
+
   // Draw routes (completed journeys only)
   for (const j of journeys.filter(isCompleted)) {
     const stops = hasValidRoute(j) ? j.route : [{ code:j.from }, { code:j.to }];
@@ -928,8 +935,9 @@ function renderMap(stationVisits) {
     const s = STATIONS[code];
     if (!s) continue;
     const isTop = count === maxVisits && maxVisits > 1;
+    const isTerminal = terminalCodes.has(code);
     const radius = 4 + Math.min(8, count * 1.5);
-    const color  = isTop ? '#ef4444' : count > 2 ? '#f97316' : '#3b82f6';
+    const color  = isTop ? '#ef4444' : isTerminal ? '#f97316' : '#3b82f6';
     L.circleMarker([s.lat, s.lng], {
       radius, color:'#06090f', weight:1, fillColor:color, fillOpacity:0.85
     }).bindPopup(`<strong>${s.name||code}</strong><br>${code}${s.state?'<br>'+s.state:''}<br><span style="color:var(--accent)">${count} visit${count!==1?'s':''}</span>`).addTo(map);
