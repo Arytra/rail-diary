@@ -59,11 +59,6 @@
     .view { display:none; }
     .view.active { display:block; }
 
-    /* STATS */
-    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
-    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 14px; text-align:center; }
-    .stat-val { font-size:22px; font-weight:700; color:var(--accent); letter-spacing:-0.02em; }
-    .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-top:4px; }
     .section-title { font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); margin-bottom:12px; }
     .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
     .class-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
@@ -277,23 +272,6 @@
   </header>
 
   <main>
-    <!-- STATS -->
-    <div class="view" id="view-stats">
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-val" id="s-rides">0</div><div class="stat-label">Rides</div></div>
-        <div class="stat-card"><div class="stat-val" id="s-km">0</div><div class="stat-label">Total KM</div></div>
-        <div class="stat-card"><div class="stat-val" id="s-states">0</div><div class="stat-label">States</div></div>
-      </div>
-      <div class="panel">
-        <div class="section-title">Class Breakdown</div>
-        <div id="class-breakdown"></div>
-      </div>
-      <div class="panel">
-        <div class="section-title">Recent Journeys</div>
-        <div id="recent-journeys"></div>
-      </div>
-    </div>
-
     <!-- PASSPORT / MAP -->
     <div class="view active" id="view-passport">
       
@@ -509,8 +487,10 @@ function ghHeaders() {
 
 async function ensureRepo() {
   const check = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}`, { headers:ghHeaders() });
+  if (check.status === 401 || check.status === 403) throw new Error('Bad token');
   if (check.status === 404) {
-    await fetch('https://api.github.com/user/repos', { method:'POST', headers:ghHeaders(), body:JSON.stringify({ name:REPO_NAME, private:true, description:'RailDiary journey data', auto_init:true }) });
+    const create = await fetch('https://api.github.com/user/repos', { method:'POST', headers:ghHeaders(), body:JSON.stringify({ name:REPO_NAME, private:true, description:'RailDiary journey data', auto_init:true }) });
+    if (!create.ok) throw new Error('Could not create repo');
     await new Promise(r=>setTimeout(r,1500));
   }
 }
@@ -581,7 +561,7 @@ async function saveJourney() {
   const to        = document.getElementById('f-to').value.trim().toUpperCase();
   const date      = document.getElementById('f-date').value;
   const classType = document.getElementById('f-class').value;
-  const km        = Number(document.getElementById('f-km').value)||0;
+  const km        = document.getElementById('f-km').value ? Number(document.getElementById('f-km').value) : null;
   const pnr       = document.getElementById('f-pnr').value.trim();
   const notes     = document.getElementById('f-notes').value.trim();
   if (!trainName||!from||!to||!date) { toast('Fill in required fields (*)','error'); return; }
@@ -592,7 +572,7 @@ async function saveJourney() {
     toast('Journey saved!','success');
     clearForm();
     renderAll();
-    if (mapInitialized) renderMap();
+    renderPassport();
     showView('log',null);
     // highlight the log nav btn
     document.querySelectorAll('.nav-btn').forEach((b,i)=>{ if(i===1) b.classList.add('active'); else b.classList.remove('active'); });
@@ -613,7 +593,8 @@ function clearForm() {
 function renderPassport() {
   const done = journeys.filter(isCompleted);   // ← only completed rides count
   const total = done.length;
-  const totalKm = done.reduce((s,j)=>s+(j.distanceKm||0),0);
+  const doneWithKm = done.filter(j => j.distanceKm != null);
+  const totalKm = doneWithKm.reduce((s,j)=>s+(j.distanceKm||0),0);
 
   // Count all unique stations across all routes
   const stationVisits = {}; // code -> count
@@ -679,7 +660,7 @@ function renderPassport() {
   }
 
   // Fun stats
-  const avgKm = total ? Math.round(totalKm/total) : 0;
+  const avgKm = doneWithKm.length ? Math.round(totalKm/doneWithKm.length) : 0;
   const earthCircum = 40075;
   const earthPct = totalKm ? ((totalKm/earthCircum)*100).toFixed(1) : 0;
 
@@ -778,46 +759,14 @@ function renderMap(stationVisits) {
     }).bindPopup(`<strong>${s.name||code}</strong><br>${code}${s.state?'<br>'+s.state:''}<br><span style="color:var(--accent)">${count} visit${count!==1?'s':''}</span>`).addTo(map);
   }
 
-  // If no journeys yet, just center on India
-  if (journeys.length === 0) {
+  // If no completed journeys, just center on India
+  if (Object.keys(stationVisits).length === 0) {
     map.setView([22.5, 80.5], 5);
   }
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-function renderAll() { renderStats(); renderJourneys(); }
-
-function renderStats() {
-  const done = journeys.filter(isCompleted);
-  const total = done.length;
-  const km    = done.reduce((s,j)=>s+(j.distanceKm||0),0);
-  const stateSet = new Set();
-  for (const j of done) {
-    const stops = j.route || [{code:j.from},{code:j.to}];
-    for (const s of stops) { const st=STATIONS[s.code]; if(st&&st.state) stateSet.add(st.state); }
-  }
-  document.getElementById('s-rides').textContent = total;
-  document.getElementById('s-km').textContent    = km.toLocaleString('en-IN');
-  document.getElementById('s-states').textContent = stateSet.size||'—';
-
-  const cls = {};
-  done.forEach(j=>{ cls[j.classType]=(cls[j.classType]||0)+1; });
-  const clsEl = document.getElementById('class-breakdown');
-  clsEl.innerHTML = Object.keys(cls).length ? Object.entries(cls).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`
-    <div class="class-row">
-      <span class="class-tag" style="color:${CLASS_COLOR[c]||'var(--accent)'}">${c}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${(n/total)*100}%;background:${CLASS_COLOR[c]||'var(--accent)'}"></div></div>
-      <span class="class-count">${n}</span>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
-
-  const recEl = document.getElementById('recent-journeys');
-  const sorted = [...done].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
-  recEl.innerHTML = sorted.length ? sorted.map(j=>`
-    <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:13px;color:var(--muted2)">${j.from} → ${j.to} <span style="color:var(--muted);font-size:12px">${j.trainName}</span></span>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${fmtDate(j.date)}</span>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
-}
+function renderAll() { renderPassport(); renderJourneys(); }
 
 function renderJourneys() {
   const q = (document.getElementById('search-input')?.value||'').toLowerCase();
