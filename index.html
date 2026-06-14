@@ -780,7 +780,7 @@ function duplicateJourneyReversed(id, e) {
   showView('add', null);
 }
 
-
+function editJourney(id, e) {
   if (e) e.stopPropagation();
   const j = journeys.find(x=>x.id===id);
   if (!j) return;
