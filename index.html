@@ -61,48 +61,73 @@
 
     .section-title { font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); margin-bottom:12px; }
     .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
-    .class-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-    .class-tag { width:32px; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; }
-    .bar-track { flex:1; background:var(--surface2); border-radius:4px; height:7px; overflow:hidden; }
-    .bar-fill { height:100%; border-radius:4px; }
-    .class-count { font-size:12px; color:var(--muted2); width:20px; text-align:right; font-family:'JetBrains Mono',monospace; }
 
-    /* PASSPORT / MAP */
-    #passport-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
-    .ps-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
-    .ps-card .ps-val { font-size:20px; font-weight:700; color:var(--accent); letter-spacing:-0.02em; }
-    .ps-card .ps-sub { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-top:2px; }
-    .ps-card .ps-detail { font-size:12px; color:var(--muted2); margin-top:4px; }
-
-    #map-container { border-radius:12px; overflow:hidden; border:1px solid var(--border); margin-bottom:14px; position:relative; }
-    #rail-map {
-      height:500px;
-      background:#0a1424;
+    /* PASSPORT LAYOUT */
+    .passport-grid-top {
+      display: grid;
+      grid-template-columns: 55fr 45fr;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: start;
     }
-
+    .passport-grid-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    #map-container { border-radius:12px; overflow:hidden; border:1px solid var(--border); position:relative; }
+    #rail-map { height:460px; background:#0a1424; }
     .map-legend { display:flex; gap:16px; flex-wrap:wrap; padding:10px 14px; background:var(--surface); border-top:1px solid var(--border); }
     .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted2); }
     .legend-dot { width:10px; height:10px; border-radius:50%; }
     .legend-line { width:20px; height:2px; border-radius:2px; }
 
-    .top-stations-list { display:flex; flex-direction:column; gap:0; }
+    /* RIGHT COLUMN: ticket + top stations stacked */
+    .passport-right { display:flex; flex-direction:column; gap:14px; }
+
+    /* TICKET CARD */
+    .ticket-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .ticket-inner { display:grid; grid-template-columns:90px 1fr; }
+    .ticket-left { background:var(--surface2); padding:14px; border-right:1px dashed var(--border2); }
+    .ticket-code { font-size:18px; font-weight:700; color:var(--accent); }
+    .ticket-date { font-size:12px; color:var(--muted2); margin-top:8px; }
+    .ticket-main { padding:16px 20px; }
+
+    /* TOP STATIONS */
+    .top-stations-list { display:flex; flex-direction:column; }
     .top-station-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
-    .rank-num { display:none; }
+    .top-station-row:last-child { border-bottom:none; }
     .stn-info { flex:1; }
     .stn-name { font-size:13px; font-weight:500; }
     .stn-code { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
     .stn-count { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--accent); font-weight:600; }
 
-    .fun-stats-grid {
-      display:grid;
-      grid-template-columns:1fr;
-      gap:16px;
-    }
-    .fun-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; }
-    .fun-card .fun-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
-    .fun-card .fun-val { font-size:16px; font-weight:700; }
-    .fun-card .fun-sub { font-size:11px; color:var(--muted2); margin-top:2px; }
+    /* CLASS BREAKDOWN — horizontal bar chart */
+    .class-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .class-bar-row:last-child { margin-bottom:0; }
+    .class-bar-label { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; width:28px; flex-shrink:0; }
+    .class-bar-track { flex:1; background:var(--surface2); border-radius:4px; height:10px; overflow:hidden; position:relative; }
+    .class-bar-fill { height:100%; border-radius:4px; transition:width 0.4s ease; }
+    .class-bar-count { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted2); width:20px; text-align:right; flex-shrink:0; }
 
+    /* JOURNEY INSIGHTS */
+    .insight-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .insight-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+    .insight-number { font-size:28px; line-height:1; font-weight:700; color:var(--accent); }
+    .insight-text { color:var(--muted2); margin-top:6px; font-size:12px; line-height:1.4; }
+
+    /* SUMMARY STRIP */
+    .summary-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+    .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .summary-value { font-size:22px; font-weight:700; color:var(--accent); }
+    .summary-label { font-size:11px; color:var(--muted); text-transform:uppercase; }
+
+    @media(max-width:960px) {
+      .passport-grid-top { grid-template-columns:1fr; }
+      .passport-grid-bottom { grid-template-columns:1fr; }
+      .summary-strip { grid-template-columns:repeat(2,1fr); }
+      .insight-grid { grid-template-columns:1fr; }
+    }
     /* JOURNEY LIST */
     .search-bar { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none; margin-bottom:14px; transition:border-color 0.15s; }
     .search-bar:focus { border-color:var(--accent); }
@@ -172,70 +197,10 @@
     .leaflet-control-attribution { display:none; }
     .leaflet-control-zoom a { background:var(--surface2) !important; color:var(--text) !important; border-color:var(--border2) !important; }
 
-    
-    .passport-dashboard {
-      display:grid;
-      grid-template-columns:3.5fr 1fr;
-      gap:32px;
-      margin-top:32px;
-    }
-    .passport-full { grid-column:1/-1; }
-    .summary-strip {
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:12px;
-      margin-bottom:24px;
-    }
-    .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; }
-    .summary-value { font-size:22px; font-weight:700; color:var(--accent); }
-    .summary-label { font-size:11px; color:var(--muted); text-transform:uppercase; }
-    @media(max-width:900px){
-      .passport-dashboard{grid-template-columns:1fr;}
-      .summary-strip{grid-template-columns:repeat(2,1fr);}
-    }
 
-    
-/* PASSPORT V1 REDESIGN */
-.passport-layout{
-      display:grid;
-      grid-template-columns:4fr 1fr;
-      gap:10px;
-      align-items:stretch;
-    }
-.passport-main{display:flex;flex-direction:column;}
-.passport-bottom{display:grid;grid-template-columns:4fr 1fr;gap:10px;margin-top:10px;}
-.passport-sidebar{display:grid;grid-template-rows:40% 60%;gap:10px;}
-
-
-.ticket-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.ticket-inner{display:grid;grid-template-columns:90px 1fr}
-.ticket-left{background:var(--surface2);padding:14px;border-right:1px dashed var(--border2)}
-.ticket-code{font-size:18px;font-weight:700;color:var(--accent)}
-.ticket-date{font-size:12px;color:var(--muted2);margin-top:8px}
-.ticket-main{
-      padding:20px;
-      min-height:140px;
-    }
-.insight-number{
-      font-size:42px;
-      line-height:1;
-      font-weight:700;
-      color:var(--accent);
-    }
-.insight-text{
-      color:var(--muted2);
-      margin-top:10px;
-      font-size:15px;
-      line-height:1.5;
-    }
-@media(max-width:900px){.passport-layout{grid-template-columns:1fr}}
-
-@media(max-width:500px) {
-      .stats-grid { grid-template-columns:1fr 1fr; }
-      #passport-stats { grid-template-columns:1fr 1fr; }
+    @media(max-width:500px) {
       .form-grid { grid-template-columns:1fr; }
       .form-field.full { grid-column:1; }
-      .fun-stats-grid { grid-template-columns:1fr; }
       nav .nav-btn { padding:6px 8px; font-size:12px; }
       header { padding:0 12px; }
     }
@@ -274,68 +239,68 @@
   <main>
     <!-- PASSPORT / MAP -->
     <div class="view active" id="view-passport">
-      
-<div class="summary-strip passport-full">
-  <div class="summary-card"><div class="summary-value" id="sum-km">0</div><div class="summary-label">KM</div></div>
-  <div class="summary-card"><div class="summary-value" id="sum-rides">0</div><div class="summary-label">Rides</div></div>
-  <div class="summary-card"><div class="summary-value" id="sum-stations">0</div><div class="summary-label">Stations</div></div>
-  <div class="summary-card"><div class="summary-value" id="sum-states">0</div><div class="summary-label">States</div></div>
-</div>
-<div class="passport-dashboard">
-<div id="passport-stats">
-        <div class="ps-card"><div class="ps-val" id="ps-km">0</div><div class="ps-sub">Kilometres railed</div><div class="ps-detail" id="ps-km-detail"></div></div>
-        <div class="ps-card"><div class="ps-val" id="ps-stations">0</div><div class="ps-sub">Unique stations</div><div class="ps-detail" id="ps-stn-detail"></div></div>
-        <div class="ps-card"><div class="ps-val" id="ps-routes">0</div><div class="ps-sub">Unique routes</div><div class="ps-detail" id="ps-route-detail"></div></div>
-        <div class="ps-card"><div class="ps-val" id="ps-longest">—</div><div class="ps-sub">Longest single ride</div><div class="ps-detail" id="ps-longest-detail"></div></div>
+
+      <!-- Row 1: 4 stat cards -->
+      <div class="summary-strip">
+        <div class="summary-card"><div class="summary-value" id="sum-km">0</div><div class="summary-label">KM</div></div>
+        <div class="summary-card"><div class="summary-value" id="sum-rides">0</div><div class="summary-label">Rides</div></div>
+        <div class="summary-card"><div class="summary-value" id="sum-stations">0</div><div class="summary-label">Stations</div></div>
+        <div class="summary-card"><div class="summary-value" id="sum-states">0</div><div class="summary-label">States</div></div>
       </div>
 
-      <div class="passport-layout"><div class="passport-main"><div id="map-container">
-        <div id="rail-map"></div>
-        <div class="map-legend">
-          <div class="legend-item"><div class="legend-line" style="background:#f97316;opacity:0.8"></div> Journey route</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Terminal station</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Intermediate stop</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Most visited</div>
+      <!-- Row 2: Map (55%) + Right column (45%) -->
+      <div class="passport-grid-top">
+        <div id="map-container">
+          <div id="rail-map"></div>
+          <div class="map-legend">
+            <div class="legend-item"><div class="legend-line" style="background:#f97316;opacity:0.8"></div> Journey route</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Terminal station</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Intermediate stop</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Most visited</div>
+          </div>
+        </div>
+
+        <div class="passport-right">
+          <!-- Upcoming Journey ticket -->
+          <div class="ticket-card">
+            <div class="section-title" style="padding:14px 16px 0">Upcoming Journey</div>
+            <div class="ticket-inner">
+              <div class="ticket-left">
+                <div class="ticket-code" id="up-trainno">----</div>
+                <div class="ticket-date" id="up-date">No upcoming</div>
+              </div>
+              <div class="ticket-main">
+                <div style="font-size:16px;font-weight:700;margin-bottom:10px" id="up-trainname">Plan your next ride.</div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                  <div><div style="font-size:11px;color:var(--muted)">FROM</div><div id="up-from" style="font-weight:600">—</div></div>
+                  <div style="text-align:right"><div style="font-size:11px;color:var(--muted)">TO</div><div id="up-to" style="font-weight:600">—</div></div>
+                </div>
+                <div id="up-countdown" style="color:var(--accent);font-weight:700;font-size:13px"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Stations -->
+          <div class="panel" style="margin-bottom:0;flex:1">
+            <div class="section-title">Top Stations</div>
+            <div class="top-stations-list" id="top-stations"></div>
+          </div>
         </div>
       </div>
 
-      <div class="passport-bottom">
-        <div class="panel class-panel">
+      <!-- Row 3: Class Breakdown + Journey Insights -->
+      <div class="passport-grid-bottom">
+        <div class="panel" style="margin-bottom:0">
           <div class="section-title">Class Breakdown</div>
           <div id="passport-class-breakdown"></div>
         </div>
-
-        <div class="panel insights-panel">
+        <div class="panel" style="margin-bottom:0">
           <div class="section-title">Journey Insights</div>
-          <div class="fun-stats-grid" id="fun-stats"></div>
+          <div class="insight-grid" id="fun-stats"></div>
         </div>
       </div>
 
-      </div></div>
-
-      <div class="passport-sidebar">
-<div class="ticket-card">
-<div class="ticket-inner">
-<div class="ticket-left">
-<div class="ticket-code" id="up-trainno">----</div>
-<div class="ticket-date" id="up-date">No upcoming journey</div>
-</div>
-<div class="ticket-main">
-<div style="font-size:18px;font-weight:700;margin-bottom:10px" id="up-trainname">Plan your next ride.</div>
-<div style="display:flex;justify-content:space-between;margin-bottom:12px">
-  <div><div style="font-size:11px;color:var(--muted)">FROM</div><div id="up-from">—</div></div>
-  <div><div style="font-size:11px;color:var(--muted)">TO</div><div id="up-to">—</div></div>
-</div>
-<div id="up-countdown" style="color:var(--accent);font-weight:700"></div>
-</div>
-</div>
-</div>
-<div class="panel"><div class="section-title">Top Stations</div>
-        <div class="top-stations-list" id="top-stations"></div>
-      </div>
-      </div>
-    </div>
-  </div><!-- /view-passport -->
+    </div><!-- /view-passport -->
 
     <!-- JOURNEY LOG -->
     <div class="view" id="view-log">
@@ -398,7 +363,7 @@
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn-secondary" onclick="showView('log', document.querySelectorAll('.nav-btn')[1])">Cancel</button>
+          <button class="btn-secondary" onclick="showView('log',null)">Cancel</button>
           <button class="btn-save" onclick="saveJourney()">Save Journey</button>
         </div>
       </div>
@@ -460,7 +425,6 @@ async function initApp() {
   const t = document.getElementById('gh-token').value.trim();
   if (!t) { toast('Paste your GitHub token first','error'); return; }
   TOKEN = t;
-  localStorage.setItem(STORAGE_KEY, TOKEN);
   bootApp();
 }
 
@@ -469,13 +433,14 @@ async function bootApp() {
   try {
     await ensureRepo();
     await loadJourneys();
+    localStorage.setItem(STORAGE_KEY, TOKEN);
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
     renderAll(); renderPassport();
     setSyncStatus('synced','● synced');
   } catch(e) {
     setSyncStatus('error','● error');
-    toast(e.message || 'Could not connect. Check your token.','error');
+    toast('Could not connect. Check your token.','error');
     console.error(e);
   }
 }
@@ -498,14 +463,9 @@ async function ensureRepo() {
 async function loadJourneys() {
   const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${DATA_FILE}`, { headers:ghHeaders() });
   if (res.status === 404) { journeys=[]; fileSHA=null; return; }
-  if (!res.ok) throw new Error(`GitHub error ${res.status}`);
   const data = await res.json();
   fileSHA = data.sha;
-  try {
-    journeys = JSON.parse(atob(data.content.replace(/\n/g,'')));
-  } catch(e) {
-    throw new Error('journeys.json on GitHub contains invalid JSON — check the file manually.');
-  }
+  journeys = JSON.parse(atob(data.content.replace(/\n/g,'')));
 }
 
 async function saveToGitHub() {
@@ -577,7 +537,10 @@ async function saveJourney() {
     toast('Journey saved!','success');
     clearForm();
     renderAll();
-    showView('log', document.querySelectorAll('.nav-btn')[1]);
+    renderPassport();
+    showView('log',null);
+    // highlight the log nav btn
+    document.querySelectorAll('.nav-btn').forEach((b,i)=>{ if(i===1) b.classList.add('active'); else b.classList.remove('active'); });
   } catch(e) {
     journeys.pop();
     toast('Save failed — check connection','error');
@@ -593,15 +556,14 @@ function clearForm() {
 
 // ── PASSPORT / MAP ────────────────────────────────────────────────────────────
 function renderPassport() {
-  const done = journeys.filter(isCompleted);   // ← only completed rides count
+  const done = journeys.filter(isCompleted);
   const total = done.length;
   const doneWithKm = done.filter(j => j.distanceKm != null);
   const totalKm = doneWithKm.reduce((s,j)=>s+(j.distanceKm||0),0);
 
-  // Count all unique stations across all routes
-  const stationVisits = {}; // code -> count
+  // Station visit counts (completed journeys only)
+  const stationVisits = {};
   const routeSet = new Set();
-
   for (const j of done) {
     routeSet.add(`${j.from}-${j.to}`);
     if (j.route && j.route.length) {
@@ -609,87 +571,81 @@ function renderPassport() {
         if (s.code) stationVisits[s.code] = (stationVisits[s.code]||0)+1;
       }
     } else {
-      // at minimum count from/to
       stationVisits[j.from] = (stationVisits[j.from]||0)+1;
       stationVisits[j.to]   = (stationVisits[j.to]||0)+1;
     }
   }
 
   const uniqueStations = Object.keys(stationVisits).length;
-  const uniqueRoutes   = routeSet.size;
 
-  // Longest journey (only among rides where km was entered)
-  const doneWithKmSorted = [...doneWithKm].sort((a,b)=>(b.distanceKm||0)-(a.distanceKm||0));
-  const longest = doneWithKmSorted[0] || null;
-
-  // States visited (from station data)
+  // States visited
   const stateSet = new Set();
   for (const code of Object.keys(stationVisits)) {
     const s = STATIONS[code];
     if (s && s.state) stateSet.add(s.state);
   }
 
-  
-  document.getElementById('sum-rides').textContent = total;
-  document.getElementById('sum-km').textContent = totalKm.toLocaleString('en-IN');
+  // ── Summary strip ──
+  document.getElementById('sum-rides').textContent    = total;
+  document.getElementById('sum-km').textContent       = totalKm.toLocaleString('en-IN');
   document.getElementById('sum-stations').textContent = uniqueStations;
-  document.getElementById('sum-states').textContent = stateSet.size;
+  document.getElementById('sum-states').textContent   = stateSet.size;
 
-  document.getElementById('ps-km').textContent = totalKm.toLocaleString('en-IN');
-  document.getElementById('ps-km-detail').textContent = stateSet.size ? `Across ${stateSet.size} states` : '';
-  document.getElementById('ps-stations').textContent = uniqueStations;
-  document.getElementById('ps-stn-detail').textContent = stateSet.size ? [...stateSet].slice(0,3).join(', ') + (stateSet.size>3?'…':'') : '';
-  document.getElementById('ps-routes').textContent = uniqueRoutes;
-  document.getElementById('ps-route-detail').textContent = total ? `${total} total ride${total!==1?'s':''}` : '';
-  document.getElementById('ps-longest').textContent = longest ? `${(longest.distanceKm||0).toLocaleString('en-IN')} km` : '—';
-  document.getElementById('ps-longest-detail').textContent = longest ? longest.trainName : '';
+  // ── Top stations ──
+  const topStn = Object.entries(stationVisits).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const topEl  = document.getElementById('top-stations');
+  topEl.innerHTML = topStn.length
+    ? topStn.map(([code,count]) => {
+        const s = STATIONS[code];
+        return `<div class="top-station-row">
+          <div class="stn-info">
+            <div class="stn-name">${s?s.name:code}</div>
+            <span class="stn-code">${code}</span>${s&&s.state?` · <span style="font-size:11px;color:var(--muted)">${s.state}</span>`:''}
+          </div>
+          <span class="stn-count">${count}×</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);font-size:13px">No data yet.</div>';
 
-  // Top stations
-  const topStn = Object.entries(stationVisits).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const topEl = document.getElementById('top-stations');
-  if (!topStn.length) { topEl.innerHTML='<div style="color:var(--muted);font-size:13px">No data yet.</div>'; }
-  else {
-    topEl.innerHTML = topStn.map(([code,count],i) => {
-      const s = STATIONS[code];
-      return `<div class="top-station-row">
-        
-        <div class="stn-info">
-          <div class="stn-name">${s?s.name:code}</div>
-          <span class="stn-code">${code}</span>${s&&s.state?` · <span style="font-size:11px;color:var(--muted)">${s.state}</span>`:''}
-        </div>
-        <span class="stn-count">${count}×</span>
-      </div>`;
-    }).join('');
-  }
+  // ── Class breakdown — horizontal bar chart (completed only) ──
+  const cls = {};
+  done.forEach(j => { cls[j.classType] = (cls[j.classType]||0)+1; });
+  const maxCls = total ? Math.max(...Object.values(cls)) : 1;
+  const clsEl = document.getElementById('passport-class-breakdown');
+  clsEl.innerHTML = Object.keys(cls).length
+    ? Object.entries(cls).sort((a,b)=>b[1]-a[1]).map(([c,n]) => `
+        <div class="class-bar-row">
+          <span class="class-bar-label" style="color:${CLASS_COLOR[c]||'var(--accent)'}">${c}</span>
+          <div class="class-bar-track">
+            <div class="class-bar-fill" style="width:${(n/maxCls)*100}%;background:${CLASS_COLOR[c]||'var(--accent)'}"></div>
+          </div>
+          <span class="class-bar-count">${n}</span>
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
 
-  // Fun stats
-  const avgKm = doneWithKm.length ? Math.round(totalKm/doneWithKm.length) : 0;
-  const earthCircum = 40075;
-  const earthPct = totalKm ? ((totalKm/earthCircum)*100).toFixed(1) : 0;
+  // ── Journey insights (completed only) ──
+  const avgKm    = doneWithKm.length ? Math.round(totalKm/doneWithKm.length) : 0;
+  const earthPct = totalKm ? ((totalKm/40075)*100).toFixed(1) : 0;
+  const doneWithKmSorted = [...doneWithKm].sort((a,b)=>(b.distanceKm||0)-(a.distanceKm||0));
+  const longest  = doneWithKmSorted[0] || null;
 
   document.getElementById('fun-stats').innerHTML = `
-    <div class="fun-card">
+    <div class="insight-card">
       <div class="insight-number">${avgKm.toLocaleString('en-IN')} km</div>
-      <div class="insight-text">was your average journey length</div>
+      <div class="insight-text">avg journey length</div>
     </div>
-    <div class="fun-card">
+    <div class="insight-card">
       <div class="insight-number">${earthPct}%</div>
-      <div class="insight-text">of Earth's circumference covered</div>
+      <div class="insight-text">of Earth's circumference</div>
     </div>
-  `;
-
-  
-  const cls = {};
-  done.forEach(j=>{ cls[j.classType]=(cls[j.classType]||0)+1; });
-  const passportCls = document.getElementById('passport-class-breakdown');
-  if(passportCls){
-    passportCls.innerHTML = Object.keys(cls).length ? Object.entries(cls).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`
-      <div class="class-row">
-        <span class="class-tag" style="color:${CLASS_COLOR[c]||'var(--accent)'}">${c}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${(n/total)*100}%;background:${CLASS_COLOR[c]||'var(--accent)'}"></div></div>
-        <span class="class-count">${n}</span>
-      </div>`).join('') : '<div style="color:var(--muted);font-size:13px">No journeys yet.</div>';
-  }
+    <div class="insight-card">
+      <div class="insight-number">${longest ? longest.distanceKm.toLocaleString('en-IN')+' km' : '—'}</div>
+      <div class="insight-text">longest single ride${longest?'<br><span style="font-size:11px;color:var(--muted)">'+longest.trainName+'</span>':''}</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-number">${routeSet.size}</div>
+      <div class="insight-text">unique routes</div>
+    </div>`;
 
   renderUpcomingJourney();
   renderMap(stationVisits);
@@ -704,25 +660,17 @@ function renderUpcomingJourney(){
     .filter(j => new Date(j.date + 'T00:00:00') >= today)
     .sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
 
-  if(!upcoming) {
-    document.getElementById('up-trainno').textContent  = '----';
-    document.getElementById('up-date').textContent     = 'No upcoming journey';
-    document.getElementById('up-trainname').textContent= 'Plan your next ride.';
-    document.getElementById('up-from').textContent     = '—';
-    document.getElementById('up-to').textContent       = '—';
-    document.getElementById('up-countdown').textContent= '';
-    return;
-  }
+  if(!upcoming) return;
 
-  document.getElementById('up-trainno').textContent   = upcoming.trainNo || '----';
-  document.getElementById('up-date').textContent      = fmtDate(upcoming.date);
+  document.getElementById('up-trainno').textContent = upcoming.trainNo || '----';
+  document.getElementById('up-date').textContent = fmtDate(upcoming.date);
   document.getElementById('up-trainname').textContent = upcoming.trainName;
-  document.getElementById('up-from').textContent      = upcoming.from;
-  document.getElementById('up-to').textContent        = upcoming.to;
+  document.getElementById('up-from').textContent = upcoming.from;
+  document.getElementById('up-to').textContent = upcoming.to;
 
   const tripDate = new Date(upcoming.date + 'T00:00:00');
   const diff = tripDate - new Date();
-  const days  = Math.max(0, Math.floor(diff / 86400000));
+  const days = Math.max(0, Math.floor(diff / 86400000));
   const hours = Math.max(0, Math.floor((diff % 86400000) / 3600000));
 
   document.getElementById('up-countdown').textContent =
