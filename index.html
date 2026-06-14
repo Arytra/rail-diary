@@ -279,10 +279,10 @@
 
       <!-- Row 1: 4 stat cards -->
       <div class="summary-strip">
-        <div class="summary-card"><div class="summary-value" id="sum-km">0</div><div class="summary-label">KM</div></div>
-        <div class="summary-card"><div class="summary-value" id="sum-rides">0</div><div class="summary-label">Rides</div></div>
-        <div class="summary-card"><div class="summary-value" id="sum-stations">0</div><div class="summary-label">Stations</div></div>
-        <div class="summary-card"><div class="summary-value" id="sum-states">0</div><div class="summary-label">States</div></div>
+        <div class="summary-card"><div class="summary-value" id="sum-km" style="color:var(--accent)">0</div><div class="summary-label">KM</div></div>
+        <div class="summary-card"><div class="summary-value" id="sum-rides" style="color:#22d3ee">0</div><div class="summary-label">Rides</div></div>
+        <div class="summary-card"><div class="summary-value" id="sum-stations" style="color:var(--purple)">0</div><div class="summary-label">Stations</div></div>
+        <div class="summary-card"><div class="summary-value" id="sum-states" style="color:var(--green)">0</div><div class="summary-label">States</div></div>
       </div>
 
       <!-- Row 2: Map (55%) + Right column (45%) -->
@@ -290,7 +290,7 @@
         <div id="map-container">
           <div id="rail-map"></div>
           <div class="map-legend">
-            <div class="legend-item"><div class="legend-line" style="background:#f97316;opacity:0.8"></div> Journey route</div>
+            <div class="legend-item"><div class="legend-line" style="background:#22d3ee;opacity:0.85"></div> Journey route</div>
             <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Terminal station</div>
             <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Intermediate stop</div>
             <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Most visited</div>
@@ -775,6 +775,10 @@ function renderPassport() {
   for (const j of done) {
     routeSet.add(`${j.from}-${j.to}`);
     if (hasValidRoute(j)) {
+      for (const s of j.route) {
+        if (s.code) stationVisits[s.code] = (stationVisits[s.code]||0)+1;
+      }
+    } else {
       stationVisits[j.from] = (stationVisits[j.from]||0)+1;
       stationVisits[j.to]   = (stationVisits[j.to]||0)+1;
     }
@@ -835,19 +839,19 @@ function renderPassport() {
 
   document.getElementById('fun-stats').innerHTML = `
     <div class="insight-card">
-      <div class="insight-number">${avgKm.toLocaleString('en-IN')} km</div>
+      <div class="insight-number" style="color:var(--accent)">${avgKm.toLocaleString('en-IN')} km</div>
       <div class="insight-text">avg journey length</div>
     </div>
     <div class="insight-card">
-      <div class="insight-number">${earthPct}%</div>
+      <div class="insight-number" style="color:#22d3ee">${earthPct}%</div>
       <div class="insight-text">of Earth's circumference</div>
     </div>
     <div class="insight-card">
-      <div class="insight-number">${longest ? longest.distanceKm.toLocaleString('en-IN')+' km' : '—'}</div>
+      <div class="insight-number" style="color:var(--purple)">${longest ? longest.distanceKm.toLocaleString('en-IN')+' km' : '—'}</div>
       <div class="insight-text">longest single ride${longest?'<br><span style="font-size:11px;color:var(--muted)">'+longest.trainName+'</span>':''}</div>
     </div>
     <div class="insight-card">
-      <div class="insight-number">${routeSet.size}</div>
+      <div class="insight-number" style="color:var(--green)">${routeSet.size}</div>
       <div class="insight-text">unique routes</div>
     </div>`;
 
@@ -926,7 +930,7 @@ function renderMap(stationVisits) {
     const stops = hasValidRoute(j) ? j.route : [{ code:j.from }, { code:j.to }];
     const coords = stops.map(s=>STATIONS[s.code]).filter(Boolean).map(s=>[s.lat,s.lng]);
     if (coords.length >= 2) {
-      L.polyline(coords, { color:'#f97316', weight:2, opacity:0.65, smoothFactor:1.5 }).addTo(map);
+      L.polyline(coords, { color:'#22d3ee', weight:3.5, opacity:0.75, smoothFactor:1.5 }).addTo(map);
     }
   }
 
