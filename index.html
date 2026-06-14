@@ -68,33 +68,46 @@
       grid-template-columns: 55fr 45fr;
       gap: 16px;
       margin-bottom: 16px;
-      align-items: start;
+      align-items: stretch;
     }
     .passport-grid-bottom {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
     }
-    #map-container { border-radius:12px; overflow:hidden; border:1px solid var(--border); position:relative; }
-    #rail-map { height:460px; background:#0a1424; }
+    #map-container { border-radius:12px; overflow:hidden; border:1px solid var(--border); position:relative; display:flex; flex-direction:column; }
+    #rail-map { flex:1; min-height:460px; background:#0a1424; }
     .map-legend { display:flex; gap:16px; flex-wrap:wrap; padding:10px 14px; background:var(--surface); border-top:1px solid var(--border); }
     .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted2); }
     .legend-dot { width:10px; height:10px; border-radius:50%; }
     .legend-line { width:20px; height:2px; border-radius:2px; }
 
     /* RIGHT COLUMN: ticket + top stations stacked */
-    .passport-right { display:flex; flex-direction:column; gap:14px; }
+    .passport-right { display:flex; flex-direction:column; gap:14px; height:100%; }
 
     /* TICKET CARD */
-    .ticket-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .ticket-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; flex-shrink:0; }
     .ticket-inner { display:grid; grid-template-columns:90px 1fr; }
-    .ticket-left { background:var(--surface2); padding:14px; border-right:1px dashed var(--border2); }
+    .ticket-left { background:var(--surface2); padding:14px; border-right:1px dashed var(--border2); display:flex; flex-direction:column; }
     .ticket-code { font-size:18px; font-weight:700; color:var(--accent); }
     .ticket-date { font-size:12px; color:var(--muted2); margin-top:8px; }
     .ticket-main { padding:16px 20px; }
+    .ticket-header-row { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:14px; }
+    .ticket-trainname { font-size:16px; font-weight:700; line-height:1.3; }
+    .ticket-countdown { flex-shrink:0; background:var(--accent); color:#fff; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+    .ticket-countdown.today { background:var(--green); }
+    .ticket-route-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .ticket-stn { text-align:left; }
+    .ticket-stn.to { text-align:right; }
+    .ticket-stn-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+    .ticket-stn-code { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; }
+    .ticket-route-line { flex:1; display:flex; align-items:center; gap:6px; padding:0 10px; }
+    .ticket-route-line .icon { width:22px; height:22px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#fff; }
+    .ticket-route-line .icon svg { width:13px; height:13px; }
+    .ticket-route-line .dashes { flex:1; height:0; border-top:2px dashed var(--border2); }
 
     /* TOP STATIONS */
-    .top-stations-list { display:flex; flex-direction:column; }
+    .top-stations-list { display:flex; flex-direction:column; overflow-y:auto; flex:1; min-height:0; }
     .top-station-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
     .top-station-row:last-child { border-bottom:none; }
     .stn-info { flex:1; }
@@ -127,6 +140,10 @@
       .passport-grid-bottom { grid-template-columns:1fr; }
       .summary-strip { grid-template-columns:repeat(2,1fr); }
       .insight-grid { grid-template-columns:1fr; }
+      .passport-right { height:auto; }
+      .passport-right .panel { flex:none; min-height:240px; }
+      #map-container { min-height:460px; }
+      #rail-map { flex:none; height:460px; }
     }
     /* JOURNEY LIST */
     .search-bar { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none; margin-bottom:14px; transition:border-color 0.15s; }
@@ -264,24 +281,41 @@
           <!-- Upcoming Journey ticket -->
           <div class="ticket-card">
             <div class="section-title" style="padding:14px 16px 0">Upcoming Journey</div>
-            <div class="ticket-inner">
+            <div class="ticket-inner" id="ticket-inner">
               <div class="ticket-left">
                 <div class="ticket-code" id="up-trainno">----</div>
                 <div class="ticket-date" id="up-date">No upcoming</div>
               </div>
               <div class="ticket-main">
-                <div style="font-size:16px;font-weight:700;margin-bottom:10px" id="up-trainname">Plan your next ride.</div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-                  <div><div style="font-size:11px;color:var(--muted)">FROM</div><div id="up-from" style="font-weight:600">—</div></div>
-                  <div style="text-align:right"><div style="font-size:11px;color:var(--muted)">TO</div><div id="up-to" style="font-weight:600">—</div></div>
+                <div class="ticket-header-row">
+                  <div class="ticket-trainname" id="up-trainname">Plan your next ride.</div>
+                  <div class="ticket-countdown" id="up-countdown" style="display:none"></div>
                 </div>
-                <div id="up-countdown" style="color:var(--accent);font-weight:700;font-size:13px"></div>
+                <div class="ticket-route-row" id="up-route-row" style="display:none">
+                  <div class="ticket-stn from">
+                    <div class="ticket-stn-label">From</div>
+                    <div class="ticket-stn-code" id="up-from">—</div>
+                  </div>
+                  <div class="ticket-route-line">
+                    <div class="icon">
+                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-4 0-8 .5-8 4v9.5A2.5 2.5 0 0 0 6.5 18L5 19.5V20h2.23l1.5-1.5h6.54l1.5 1.5H19v-.5L17.5 18A2.5 2.5 0 0 0 20 15.5V6c0-3.5-3.6-4-8-4zm0 2c3.87 0 6 .5 6 2H6c0-1.5 2.13-2 6-2zM6 8h12v4H6V8zm1.5 6a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm9 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/></svg>
+                    </div>
+                    <div class="dashes"></div>
+                    <div class="icon">
+                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 4.5 5.5 10.5 6.3 11.35a1 1 0 0 0 1.4 0C13.5 19.5 19 13.5 19 9c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+                    </div>
+                  </div>
+                  <div class="ticket-stn to">
+                    <div class="ticket-stn-label">To</div>
+                    <div class="ticket-stn-code" id="up-to">—</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Top Stations -->
-          <div class="panel" style="margin-bottom:0;flex:1">
+          <div class="panel" style="margin-bottom:0;flex:1;display:flex;flex-direction:column;min-height:0">
             <div class="section-title">Top Stations</div>
             <div class="top-stations-list" id="top-stations"></div>
           </div>
@@ -660,21 +694,34 @@ function renderUpcomingJourney(){
     .filter(j => new Date(j.date + 'T00:00:00') >= today)
     .sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
 
-  if(!upcoming) return;
+  const countdownEl = document.getElementById('up-countdown');
+  const routeRowEl  = document.getElementById('up-route-row');
+
+  if(!upcoming) {
+    document.getElementById('up-trainno').textContent = '----';
+    document.getElementById('up-date').textContent = 'No upcoming';
+    document.getElementById('up-trainname').textContent = 'Plan your next ride.';
+    countdownEl.style.display = 'none';
+    routeRowEl.style.display = 'none';
+    return;
+  }
 
   document.getElementById('up-trainno').textContent = upcoming.trainNo || '----';
   document.getElementById('up-date').textContent = fmtDate(upcoming.date);
   document.getElementById('up-trainname').textContent = upcoming.trainName;
   document.getElementById('up-from').textContent = upcoming.from;
   document.getElementById('up-to').textContent = upcoming.to;
+  routeRowEl.style.display = 'flex';
 
   const tripDate = new Date(upcoming.date + 'T00:00:00');
   const diff = tripDate - new Date();
   const days = Math.max(0, Math.floor(diff / 86400000));
   const hours = Math.max(0, Math.floor((diff % 86400000) / 3600000));
 
-  document.getElementById('up-countdown').textContent =
-    days === 0 && hours === 0 ? 'Today' : `${days}d ${hours}h remaining`;
+  const isToday = days === 0 && hours === 0;
+  countdownEl.textContent = isToday ? 'Today' : `${days}d ${hours}h`;
+  countdownEl.classList.toggle('today', isToday);
+  countdownEl.style.display = 'inline-block';
 }
 
 function renderMap(stationVisits) {
