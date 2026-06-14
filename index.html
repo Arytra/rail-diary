@@ -205,8 +205,14 @@
     .stops-editor { display:none; margin-top:10px; }
     .stops-editor.open { display:block; }
     .stops-editor-rows { display:flex; flex-direction:column; gap:8px; }
-    .stop-row { display:flex; align-items:center; gap:8px; }
+    .stop-row { display:flex; align-items:center; gap:8px; transition:background 0.15s, opacity 0.15s; border-radius:8px; }
     .stop-row .stop-row-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); width:20px; flex-shrink:0; text-align:center; }
+    .stop-row .stop-row-drag { background:none; border:none; flex-shrink:0; width:22px; height:30px; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:grab; touch-action:none; }
+    .stop-row .stop-row-drag:hover { color:var(--muted2); }
+    .stop-row .stop-row-drag svg { width:14px; height:14px; }
+    .stop-row.dragging { opacity:0.4; }
+    .stop-row.drag-over-top { box-shadow: inset 0 2px 0 0 var(--accent); }
+    .stop-row.drag-over-bottom { box-shadow: inset 0 -2px 0 0 var(--accent); }
     .stop-row input { flex-shrink:0; width:90px; background:var(--bg); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:13px; outline:none; text-transform:uppercase; }
     .stop-row input:focus { border-color:var(--accent); }
     .stop-row .stop-row-name { flex:1; font-size:12px; color:var(--muted2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -562,14 +568,19 @@ function addStopRow(code) {
   const rows = document.getElementById('stops-editor-rows');
   const row = document.createElement('div');
   row.className = 'stop-row';
+  row.draggable = true;
   row.innerHTML = `
     <span class="stop-row-num"></span>
+    <button type="button" class="stop-row-drag" title="Drag to reorder">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+    </button>
     <input type="text" placeholder="BZA" maxlength="8" oninput="this.value=this.value.toUpperCase();onStopCodeInput(this)" />
     <span class="stop-row-name"></span>
     <button type="button" class="stop-row-remove" title="Remove" onclick="removeStopRow(this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
     </button>`;
   rows.appendChild(row);
+  attachStopRowDragEvents(row);
   if (code) {
     const input = row.querySelector('input');
     input.value = code;
@@ -577,6 +588,44 @@ function addStopRow(code) {
   }
   renumberStopRows();
   updateStopsEditorCount();
+}
+
+// ── DRAG AND DROP REORDERING ─────────────────────────────────────────────────
+let dragSrcRow = null;
+
+function attachStopRowDragEvents(row) {
+  row.addEventListener('dragstart', e => {
+    dragSrcRow = row;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+    document.querySelectorAll('#stops-editor-rows .stop-row').forEach(r=>r.classList.remove('drag-over-top','drag-over-bottom'));
+    dragSrcRow = null;
+  });
+  row.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (!dragSrcRow || dragSrcRow === row) return;
+    const rect = row.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height/2;
+    row.classList.toggle('drag-over-top', before);
+    row.classList.toggle('drag-over-bottom', !before);
+  });
+  row.addEventListener('dragleave', () => {
+    row.classList.remove('drag-over-top','drag-over-bottom');
+  });
+  row.addEventListener('drop', e => {
+    e.preventDefault();
+    row.classList.remove('drag-over-top','drag-over-bottom');
+    if (!dragSrcRow || dragSrcRow === row) return;
+    const rows = document.getElementById('stops-editor-rows');
+    const rect = row.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height/2;
+    if (before) rows.insertBefore(dragSrcRow, row);
+    else rows.insertBefore(dragSrcRow, row.nextSibling);
+    renumberStopRows();
+  });
 }
 
 function removeStopRow(btn) {
@@ -700,7 +749,38 @@ async function saveJourney() {
   }
 }
 
-function editJourney(id, e) {
+function duplicateJourneyReversed(id, e) {
+  if (e) e.stopPropagation();
+  const j = journeys.find(x=>x.id===id);
+  if (!j) return;
+  editingId = null; // ensures saveJourney() creates a new entry
+
+  document.getElementById('f-trainno').value   = '';
+  document.getElementById('f-trainname').value = j.trainName || '';
+  document.getElementById('f-from').value      = j.to || '';
+  document.getElementById('f-to').value        = j.from || '';
+  document.getElementById('f-date').value      = '';
+  document.getElementById('f-class').value     = 'SL';
+  document.getElementById('f-km').value        = '';
+  document.getElementById('f-pnr').value        = '';
+  document.getElementById('f-notes').value     = '';
+
+  const reversedStops = hasValidRoute(j)
+    ? j.route.filter(s => s.code !== j.from && s.code !== j.to).slice().reverse()
+    : [];
+  populateStopsEditor(reversedStops);
+  const editor = document.getElementById('stops-editor');
+  const toggle = document.querySelector('.stops-editor-toggle');
+  const hasStops = reversedStops.length > 0;
+  editor.classList.toggle('open', hasStops);
+  toggle.classList.toggle('open', hasStops);
+
+  document.getElementById('add-form-title').textContent = 'Log a Journey';
+  document.getElementById('btn-save-journey').textContent = 'Save Journey';
+  showView('add', null);
+}
+
+
   if (e) e.stopPropagation();
   const j = journeys.find(x=>x.id===id);
   if (!j) return;
@@ -977,6 +1057,9 @@ function renderJourneys() {
         <div class="journey-actions">
           ${upcomingBadge}
           <span class="badge" style="background:${color}22;color:${color}">${j.classType}</span>
+          <button class="icon-btn" title="Duplicate (reversed)" onclick="duplicateJourneyReversed(${j.id},event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </button>
           <button class="icon-btn" title="Edit" onclick="editJourney(${j.id},event)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           </button>
