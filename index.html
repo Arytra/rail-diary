@@ -159,6 +159,11 @@
     .station-code { background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:3px 8px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; letter-spacing:0.05em; }
     .arrow { color:var(--accent); font-size:14px; }
     .badge { border-radius:5px; padding:2px 8px; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+    .journey-actions { display:flex; align-items:center; gap:4px; }
+    .icon-btn { background:none; border:1px solid var(--border2); border-radius:6px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; color:var(--muted2); cursor:pointer; transition:all 0.15s; flex-shrink:0; }
+    .icon-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .icon-btn.danger:hover { border-color:var(--red); color:var(--red); }
+    .icon-btn svg { width:13px; height:13px; }
     .journey-notes { font-size:12px; color:var(--muted); font-style:italic; margin-top:6px; }
     .journey-km { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); }
     .stops-toggle { background:none; border:1px solid var(--border2); border-radius:6px; padding:4px 10px; color:var(--muted2); font-family:'Space Grotesk',sans-serif; font-size:12px; cursor:pointer; margin-top:8px; transition:all 0.15s; }
@@ -249,7 +254,7 @@
     </nav>
     <div class="header-right">
       <span class="sync-status" id="sync-status">● ready</span>
-      <button class="btn-add" onclick="showView('add',null)">+ Add</button>
+      <button class="btn-add" onclick="clearForm(); showView('add',null)">+ Add</button>
     </div>
   </header>
 
@@ -345,7 +350,7 @@
     <!-- ADD -->
     <div class="view" id="view-add">
       <div class="panel">
-        <div class="section-title" style="margin-bottom:18px">Log a Journey</div>
+        <div class="section-title" style="margin-bottom:18px" id="add-form-title">Log a Journey</div>
         <div class="form-grid">
           <div class="form-field full">
             <label>Train Number *</label>
@@ -397,8 +402,8 @@
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn-secondary" onclick="showView('log',null)">Cancel</button>
-          <button class="btn-save" onclick="saveJourney()">Save Journey</button>
+          <button class="btn-secondary" onclick="cancelForm()">Cancel</button>
+          <button class="btn-save" id="btn-save-journey" onclick="saveJourney()">Save Journey</button>
         </div>
       </div>
     </div>
@@ -445,6 +450,7 @@ let TOKEN    = '';
 let journeys = [];
 let fileSHA  = null;
 let fetchedRoute = null;
+let editingId = null;
 let map = null;
 let mapInitialized = false;
 
@@ -564,6 +570,32 @@ async function saveJourney() {
   const pnr       = document.getElementById('f-pnr').value.trim();
   const notes     = document.getElementById('f-notes').value.trim();
   if (!trainName||!from||!to||!date) { toast('Fill in required fields (*)','error'); return; }
+
+  if (editingId !== null) {
+    // ── UPDATE EXISTING ──
+    const idx = journeys.findIndex(j=>j.id===editingId);
+    if (idx === -1) { toast('Journey not found','error'); return; }
+    const original = journeys[idx];
+    const route = fetchedRoute !== null ? fetchedRoute : original.route;
+    const updated = { ...original, trainNo, trainName, from, to, date, classType, distanceKm:km, pnr, notes, route };
+    journeys[idx] = updated;
+    try {
+      await saveToGitHub();
+      toast('Journey updated!','success');
+      editingId = null;
+      clearForm();
+      renderAll();
+      renderPassport();
+      showView('log',null);
+      document.querySelectorAll('.nav-btn').forEach((b,i)=>{ if(i===1) b.classList.add('active'); else b.classList.remove('active'); });
+    } catch(e) {
+      journeys[idx] = original;
+      toast('Update failed — check connection','error');
+    }
+    return;
+  }
+
+  // ── CREATE NEW ──
   const entry = { id:Date.now(), trainNo, trainName, from, to, date, classType, distanceKm:km, pnr, notes, route:fetchedRoute||null, addedAt:new Date().toISOString() };
   journeys.push(entry);
   try {
@@ -581,11 +613,66 @@ async function saveJourney() {
   }
 }
 
+function editJourney(id, e) {
+  if (e) e.stopPropagation();
+  const j = journeys.find(x=>x.id===id);
+  if (!j) return;
+  editingId = id;
+  document.getElementById('f-trainno').value   = j.trainNo || '';
+  document.getElementById('f-trainname').value = j.trainName || '';
+  document.getElementById('f-from').value      = j.from || '';
+  document.getElementById('f-to').value        = j.to || '';
+  document.getElementById('f-date').value      = j.date || '';
+  document.getElementById('f-class').value     = j.classType || 'SL';
+  document.getElementById('f-km').value        = j.distanceKm != null ? j.distanceKm : '';
+  document.getElementById('f-pnr').value       = j.pnr || '';
+  document.getElementById('f-notes').value     = j.notes || '';
+  fetchedRoute = null; // unchanged unless user re-fetches
+  const preview = document.getElementById('route-preview');
+  if (j.route && j.route.length) {
+    preview.classList.add('visible');
+    preview.innerHTML = `<strong style="color:var(--green)">✓ ${j.route.length} stations on file</strong> · ${j.route[0].code} → ${j.route[j.route.length-1].code}<br><span style="color:var(--muted);font-size:11px">${j.route.map(s=>s.code).slice(0,12).join(' · ')}${j.route.length>12?'…':''}</span><br><span style="color:var(--muted);font-size:11px">Fetch again to refresh the route.</span>`;
+  } else {
+    preview.classList.remove('visible');
+    preview.innerHTML = '';
+  }
+  document.getElementById('add-form-title').textContent = 'Edit Journey';
+  document.getElementById('btn-save-journey').textContent = 'Update Journey';
+  showView('add', null);
+}
+
+async function deleteJourney(id, e) {
+  if (e) e.stopPropagation();
+  const j = journeys.find(x=>x.id===id);
+  if (!j) return;
+  if (!confirm(`Delete this journey?\n\n${j.trainName} · ${j.from} → ${j.to} · ${fmtDate(j.date)}`)) return;
+  const idx = journeys.findIndex(x=>x.id===id);
+  const removed = journeys.splice(idx,1)[0];
+  try {
+    await saveToGitHub();
+    toast('Journey deleted','success');
+    renderAll();
+    renderPassport();
+  } catch(err) {
+    journeys.splice(idx,0,removed);
+    toast('Delete failed — check connection','error');
+  }
+}
+
+function cancelForm() {
+  clearForm();
+  showView('log',null);
+}
+
 function clearForm() {
   ['f-trainno','f-trainname','f-from','f-to','f-date','f-km','f-pnr','f-notes'].forEach(id=>{ document.getElementById(id).value=''; });
   document.getElementById('f-class').value='SL';
   document.getElementById('route-preview').classList.remove('visible');
+  document.getElementById('route-preview').innerHTML = '';
   fetchedRoute = null;
+  editingId = null;
+  document.getElementById('add-form-title').textContent = 'Log a Journey';
+  document.getElementById('btn-save-journey').textContent = 'Save Journey';
 }
 
 // ── PASSPORT / MAP ────────────────────────────────────────────────────────────
@@ -792,9 +879,15 @@ function renderJourneys() {
     return `<div class="journey-card${isUpcoming?' upcoming-card':''}">
       <div class="journey-top">
         <div class="journey-name">${j.trainName}</div>
-        <div style="display:flex;align-items:center;gap:4px">
+        <div class="journey-actions">
           ${upcomingBadge}
           <span class="badge" style="background:${color}22;color:${color}">${j.classType}</span>
+          <button class="icon-btn" title="Edit" onclick="editJourney(${j.id},event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Delete" onclick="deleteJourney(${j.id},event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
         </div>
       </div>
       <div class="journey-meta">
